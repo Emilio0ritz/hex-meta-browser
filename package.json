@@ -1,0 +1,22 @@
+{
+  "name": "hex-meta-browser",
+  "version": "0.1.0",
+  "description": "HEX - a calm meta browser for threads, modes, local files, and intentional internet work.",
+  "main": "main.js",
+  "author": "Emilio Ortiz",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "test": "node --test",
+    "check": "node --check app.js && node --check main.js && node --check preload.js && node --check codex-service.js",
+    "smoke:codex": "node scripts/codex-sdk-smoke.js"
+  },
+  "dependencies": {
+    "@openai/codex-sdk": "^0.144.6"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}

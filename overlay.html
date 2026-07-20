@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HEX Overlay</title>
+    <link rel="stylesheet" href="overlay.css">
+  </head>
+  <body class="is-collapsed">
+    <button id="edgeTab" class="edge-tab" type="button" aria-label="Open HEX">
+      <span class="edge-mark">H</span>
+      <span class="edge-label">HEX</span>
+      <span id="edgeCount" class="edge-count">1</span>
+    </button>
+
+    <main id="panel" class="panel" aria-label="HEX desktop companion">
+      <header class="panel-header">
+        <div class="brand-block">
+          <span class="brand-mark">H</span>
+          <div>
+            <strong>HEX</strong>
+            <span>Keep your work together</span>
+          </div>
+        </div>
+        <div class="window-actions">
+          <button id="openManager" class="icon-button" type="button" title="Open full workspace">[]</button>
+          <button id="collapsePanel" class="icon-button" type="button" title="Collapse">&gt;</button>
+        </div>
+      </header>
+
+      <section class="thread-bar">
+        <label for="threadSelect">Active thread</label>
+        <div class="thread-picker">
+          <select id="threadSelect"></select>
+          <button id="newThread" class="icon-button" type="button" title="New thread">+</button>
+        </div>
+      </section>
+
+      <nav class="view-tabs" aria-label="HEX views">
+        <button class="view-tab active" type="button" data-view="thread">Thread</button>
+        <button class="view-tab" type="button" data-view="pins">Pins</button>
+        <button class="view-tab" type="button" data-view="links">Links</button>
+        <button class="view-tab" type="button" data-view="files">Files</button>
+      </nav>
+
+      <div class="view-scroll">
+        <section class="view active" data-view-panel="thread">
+          <label class="field-label" for="threadTitle">Thread name</label>
+          <input id="threadTitle" class="text-input" type="text" autocomplete="off">
+
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Quick note</span>
+              <h1>What matters right now?</h1>
+            </div>
+            <span id="saveState" class="save-state">Saved</span>
+          </div>
+          <textarea id="quickNote" rows="9" spellcheck="true" placeholder="Capture the thought before switching context..."></textarea>
+
+          <div class="open-loop-row">
+            <input id="loopInput" class="text-input" type="text" placeholder="Add an open loop">
+            <button id="addLoop" class="primary-button" type="button">Add</button>
+          </div>
+          <ul id="loopList" class="simple-list"></ul>
+        </section>
+
+        <section class="view" data-view-panel="pins">
+          <div class="section-heading pin-heading">
+            <div>
+              <span class="eyebrow">Understanding</span>
+              <h1>Pins in this thread</h1>
+            </div>
+            <span id="pinCount" class="save-state">0 pins</span>
+          </div>
+          <div class="pin-toolbar">
+            <button id="pinClipboard" class="primary-button" type="button">Pin clipboard</button>
+            <button id="newPin" class="secondary-button" type="button">New pin</button>
+          </div>
+
+          <form id="pinForm" class="pin-form" hidden>
+            <div class="pin-form-row">
+              <input id="pinName" class="text-input" type="text" placeholder="Term or title" autocomplete="off" required>
+              <select id="pinType" aria-label="Pin type">
+                <option value="definition">Definition</option>
+                <option value="question">Question</option>
+                <option value="quote">Quote</option>
+                <option value="formula">Formula</option>
+                <option value="example">Example</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+            <div class="pin-lookup-row">
+              <button id="definePin" class="secondary-button" type="button">Define term</button>
+              <button id="googlePin" class="text-button" type="button">Search Google</button>
+              <span id="definitionStatus" class="definition-status" aria-live="polite"></span>
+            </div>
+            <textarea id="pinContent" rows="5" spellcheck="true" placeholder="Meaning, explanation, or captured text" required></textarea>
+            <input id="pinSource" class="text-input" type="url" placeholder="Source URL (optional)">
+            <div class="pin-form-actions">
+              <button id="cancelPin" class="text-button" type="button">Cancel</button>
+              <button class="primary-button" type="submit">Save pin</button>
+            </div>
+          </form>
+
+          <ul id="pinList" class="pin-list"></ul>
+        </section>
+
+        <section class="view" data-view-panel="links">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Tab holder</span>
+              <h1>Pages in this thread</h1>
+            </div>
+          </div>
+          <form id="linkForm" class="link-form">
+            <input id="linkName" class="text-input" type="text" placeholder="Page name">
+            <input id="linkUrl" class="text-input" type="url" placeholder="Paste a URL">
+            <button class="primary-button" type="submit">Save link</button>
+          </form>
+          <ul id="linkList" class="simple-list link-list"></ul>
+        </section>
+
+        <section class="view" data-view-panel="files">
+          <div class="section-heading file-heading">
+            <div>
+              <span class="eyebrow">File holder</span>
+              <h1>Files in this thread</h1>
+            </div>
+            <button id="refreshFiles" class="text-button" type="button">Refresh</button>
+          </div>
+          <div class="file-primary-actions">
+            <button id="addFiles" class="primary-button" type="button">Add files</button>
+            <button id="openFolder" class="secondary-button" type="button">Open folder</button>
+          </div>
+          <button id="dropZone" class="drop-zone" type="button">
+            <strong>Drop files here</strong>
+            <span>They will be copied into this thread</span>
+          </button>
+          <div class="file-location-row">
+            <div>
+              <span>Location</span>
+              <code id="fileLocation">Setting up...</code>
+            </div>
+            <button id="chooseRoot" class="text-button" type="button">Change</button>
+          </div>
+          <p id="fileStatus" class="status-line"></p>
+          <ul id="fileList" class="file-grid"></ul>
+        </section>
+      </div>
+
+      <footer class="panel-footer">
+        <span id="footerSummary">1 active thread</span>
+        <button id="quitHex" class="text-button" type="button">Quit HEX</button>
+      </footer>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="overlay.js"></script>
+  </body>
+</html>

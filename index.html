@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HEX - your meta browser</title>
+    <script>
+      // Set theme before first paint to avoid a flash of the wrong mode.
+      (function () {
+        try {
+          var saved = localStorage.getItem("emilio.browserBase.theme");
+          var theme = (saved === "light" || saved === "dark")
+            ? saved
+            : (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div class="layout">
+
+      <nav class="thread-sidebar" id="threadSidebar">
+        <div class="sidebar-head">
+          <strong>Threads</strong>
+          <button id="sidebarCollapse" class="icon-button" type="button" title="Collapse sidebar">‹</button>
+        </div>
+        <button id="newThreadBtn" class="new-thread-button" type="button">+ New Thread</button>
+        <ul id="threadList" class="thread-list"></ul>
+      </nav>
+
+      <main class="app-shell">
+        <header class="hero thread-header">
+          <div class="brand-row">
+            <div class="brand-lockup">
+              <button id="sidebarToggle" class="sidebar-toggle" type="button" title="Toggle threads (Ctrl+B)">☰</button>
+              <div>
+                <h1>HEX</h1>
+                <p class="kicker">Thread workspace</p>
+              </div>
+            </div>
+            <div class="bee-mascot" aria-hidden="true">
+              <span class="bee-wing wing-left"></span>
+              <span class="bee-wing wing-right"></span>
+              <span class="bee-body">
+                <span class="bee-stripe stripe-one"></span>
+                <span class="bee-stripe stripe-two"></span>
+                <span class="bee-face">
+                  <span class="shade lens-left"></span>
+                  <span class="shade bridge"></span>
+                  <span class="shade lens-right"></span>
+                  <span class="smile"></span>
+                </span>
+              </span>
+            </div>
+            <div class="toolbar" role="toolbar" aria-label="App actions">
+              <button id="exportBtn" class="toolbar-btn" type="button" title="Export data (Ctrl+E)">
+                <span class="tb-icon">⤓</span> Export
+              </button>
+              <button id="importBtn" class="toolbar-btn" type="button" title="Import data">
+                <span class="tb-icon">⤒</span> Import
+              </button>
+              <input id="importFile" type="file" accept="application/json,.json" hidden>
+              <button id="showArchivedBtn" class="toolbar-btn" type="button" title="Show archived threads">
+                <span class="tb-icon">⌃</span> Archived <span id="archivedCount" class="badge" hidden>0</span>
+              </button>
+              <span class="toolbar-spacer"></span>
+              <button id="themeToggle" class="toolbar-btn" type="button" title="Toggle light / dark">
+                <span class="tb-icon" id="themeIcon">🌙</span> <span id="themeLabel">Dark</span>
+              </button>
+              <button id="settingsBtn" class="toolbar-btn" type="button" title="Settings">
+                <span class="tb-icon">⚙</span> Settings
+              </button>
+              <button id="helpBtn" class="toolbar-btn" type="button" title="Keyboard shortcuts (?)">
+                <span class="tb-icon">?</span> Shortcuts
+              </button>
+            </div>
+          </div>
+
+          <div class="thread-overview">
+            <div class="thread-field">
+              <label for="threadInput" id="thread-title">Active Thread</label>
+              <input id="threadInput" type="text" autocomplete="off">
+            </div>
+            <div class="orientation-card" aria-live="polite">
+              <span class="resume-label">Resume from here <span id="clock"></span></span>
+              <strong id="resumeLine"></strong>
+            </div>
+          </div>
+
+          <section class="mode-strip" aria-label="Workflow mode">
+            <span class="mode-label">Mode</span>
+            <button type="button" class="mode-button active" data-mode="research">Research</button>
+            <button type="button" class="mode-button" data-mode="writing">Writing</button>
+            <button type="button" class="mode-button" data-mode="opportunity">Opportunity Scan</button>
+            <button type="button" class="mode-button" data-mode="deepWork">Deep Work</button>
+          </section>
+        </header>
+
+        <section class="focus-panel" aria-labelledby="thread-title">
+          <form id="searchForm" class="search-form" aria-label="Search or open URL">
+            <input id="searchInput" type="search" placeholder="Search, ask, or paste a URL" autocomplete="off" autofocus>
+            <button type="submit">Open</button>
+          </form>
+          <div class="engine-row" role="group" aria-label="Search engine">
+            <button type="button" class="engine active" data-engine="google">Google</button>
+            <button type="button" class="engine" data-engine="perplexity">Perplexity</button>
+            <button type="button" class="engine" data-engine="youtube">YouTube</button>
+            <button type="button" class="engine" data-engine="reddit">Reddit</button>
+          </div>
+          <div class="contextual-row" aria-label="Contextual shortcuts">
+            <div>
+              <p class="label">Mode Shortcuts</p>
+              <p class="dock-note">Websites orbit the active thread.</p>
+            </div>
+            <div id="modeShortcuts" class="shortcut-actions"></div>
+          </div>
+          <div id="searchWorkspace" class="search-workspace">
+            <div class="workspace-head">
+              <div class="workspace-nav">
+                <button id="viewBack" class="nav-btn" type="button" title="Back" disabled>‹</button>
+                <button id="viewForward" class="nav-btn" type="button" title="Forward" disabled>›</button>
+                <button id="viewReload" class="nav-btn" type="button" title="Reload">↻</button>
+              </div>
+              <div class="workspace-title-wrap">
+                <p class="label">Embedded</p>
+                <h2 id="workspaceTitle">Nothing loaded yet</h2>
+                <p id="workspaceUrl" class="workspace-url"></p>
+              </div>
+              <div class="workspace-actions">
+                <button id="openSearchTab" class="subtle-button" type="button" title="Open in system browser">Open Externally</button>
+                <button id="toggleSearchWorkspace" class="subtle-button" type="button">Expand</button>
+              </div>
+            </div>
+            <div id="searchFrameWrap" class="search-frame-wrap collapsed">
+              <div id="webViewSlot" class="web-view-slot" aria-label="Embedded browser surface"></div>
+              <iframe id="searchFrame" title="Embedded search workspace" loading="lazy" hidden></iframe>
+              <p id="searchFrameStatus" class="dock-status"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="workspace-grid">
+          <div class="main-stack workbench-stack">
+          <article class="panel primary">
+            <div class="panel-head split">
+              <div>
+                <p class="label">Current Thread</p>
+                <h2>Next Up</h2>
+              </div>
+              <button id="clearDone" class="subtle-button" type="button">Remove completed</button>
+            </div>
+            <form id="queueForm" class="inline-form">
+              <input id="queueInput" type="text" placeholder="Add a page, question, or task">
+              <button type="submit">Add item</button>
+            </form>
+            <ul id="queueList" class="item-list"></ul>
+          </article>
+
+          <article class="panel notes-panel">
+            <div class="panel-head split">
+              <div>
+                <p class="label">Current Thread</p>
+                <h2>Thread Notes</h2>
+              </div>
+              <div class="notes-actions">
+                <span id="notesSaveStatus" class="save-status" aria-live="polite">Saved</span>
+                <button id="extractActions" class="subtle-button" type="button">Add actions to Next Up</button>
+              </div>
+            </div>
+            <textarea id="scratchpad" rows="7" spellcheck="true" placeholder="Write notes for this Thread"></textarea>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head split">
+              <div>
+                <p class="label">Pages and searches</p>
+                <h2>Recent Activity</h2>
+              </div>
+              <button id="clearTrail" class="subtle-button" type="button">Clear history</button>
+            </div>
+            <ul id="researchTrail" class="compact-list"></ul>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <p class="label">Meaningful changes</p>
+              <h2>Activity History</h2>
+            </div>
+            <ul id="sessionLog" class="compact-list"></ul>
+          </article>
+          </div>
+
+          <aside class="side-stack workbench-stack">
+            <article id="threadFilesPanel" class="panel thread-files materials-panel" aria-label="Files for this Thread">
+              <div class="thread-files-header">
+                <div>
+                  <p class="label">Current Thread</p>
+                  <h2>Files</h2>
+                </div>
+                <div class="thread-files-actions">
+                  <button id="addThreadFilesBtn" type="button">Add files</button>
+                  <button id="openThreadFolderBtn" class="subtle-button" type="button">Open folder</button>
+                  <button id="refreshThreadFiles" class="subtle-button" type="button">Refresh</button>
+                </div>
+              </div>
+              <code id="threadFolderPath" class="thread-folder-path"></code>
+              <ul id="threadFiles" class="thread-file-list"></ul>
+              <p id="threadFilesStatus" class="dock-status" aria-live="polite"></p>
+            </article>
+
+            <article class="panel loops-panel">
+              <div class="panel-head">
+                <p class="label">Unresolved work</p>
+                <h2>Needs Attention</h2>
+              </div>
+              <form id="loopForm" class="inline-form">
+                <input id="loopInput" type="text" placeholder="Add a question, decision, or unfinished task">
+                <button type="submit">Add item</button>
+              </form>
+              <ul id="loopList" class="compact-list"></ul>
+            </article>
+
+            <article class="panel sticky-panel">
+              <div class="panel-head split">
+                <div>
+                  <p class="label">One important webpage</p>
+                  <h2>Pinned Reference</h2>
+                </div>
+                <button id="clearStickyNotion" class="subtle-button" type="button">Unpin</button>
+              </div>
+              <form id="notionForm" class="link-form">
+                <input id="notionNameInput" type="text" placeholder="Page name (optional)">
+                <input id="notionUrlInput" type="url" placeholder="Paste a webpage URL">
+                <button type="submit">Pin page</button>
+              </form>
+              <div id="stickyNotion" class="sticky-link empty-state"></div>
+            </article>
+
+            <article class="panel links-panel">
+              <div class="panel-head">
+                <p class="label">Reusable destinations</p>
+                <h2>Saved Links</h2>
+              </div>
+              <form id="linkForm" class="link-form">
+                <input id="linkNameInput" type="text" placeholder="Name (optional)">
+                <input id="linkUrlInput" type="url" placeholder="Paste a webpage URL">
+                <button type="submit">Save link</button>
+              </form>
+              <div id="quickLinks" class="quick-links"></div>
+            </article>
+
+            <article class="panel codex-panel" aria-labelledby="codexDockTitle">
+              <header class="codex-dock-header">
+                <div>
+                  <p class="label">Connected workspace</p>
+                  <h2 id="codexDockTitle">Codex Dock</h2>
+                </div>
+                <span id="codexStatus" class="codex-status" data-status="no-folder">No folder connected</span>
+              </header>
+              <p class="codex-purpose">Continue this Thread with Codex using its context and connected folder.</p>
+
+              <div class="codex-connection-grid">
+                <div class="codex-connection-item">
+                  <div class="codex-connection-heading">
+                    <span>Workspace folder</span>
+                    <button id="codexFolderAction" class="codex-folder-action" type="button">Create folder</button>
+                  </div>
+                  <strong id="codexWorkspacePath">No folder connected</strong>
+                </div>
+                <div class="codex-connection-item">
+                  <span>Codex session</span>
+                  <strong id="codexSessionStatus">No session yet</strong>
+                </div>
+              </div>
+
+              <div class="codex-context-summary" aria-label="Thread context sent to Codex">
+                <span><strong id="codexPinCount">0</strong> pins</span>
+                <span><strong id="codexSourceCount">0</strong> sources</span>
+                <span><strong id="codexFileCount">0</strong> files</span>
+                <span><strong id="codexNextStepCount">0</strong> next steps</span>
+              </div>
+
+              <div class="codex-permission-block">
+                <span class="codex-label">Folder permission</span>
+                <div id="codexPermissions" class="codex-permissions" role="radiogroup" aria-label="Codex folder permission">
+                  <button type="button" data-codex-permission="read-only" role="radio" aria-checked="true">Read only</button>
+                  <button type="button" data-codex-permission="workspace-write" role="radio" aria-checked="false">Allow edits in this folder</button>
+                </div>
+              </div>
+
+              <label class="codex-label" for="codexInstruction">What should Codex do with this Thread?</label>
+              <textarea id="codexInstruction" rows="3" spellcheck="true" placeholder="Review the connected files and identify the next useful step"></textarea>
+
+              <div class="codex-dock-actions">
+                <div class="codex-secondary-actions">
+                  <button id="codexConnectBtn" class="subtle-button" type="button">Connect Codex</button>
+                  <button id="codexChangeFolder" class="subtle-button" type="button">Change folder</button>
+                  <button id="codexDisconnect" class="subtle-button" type="button">Disconnect</button>
+                </div>
+                <button id="codexSend" type="button">Send to Codex</button>
+              </div>
+
+              <div class="codex-result" aria-live="polite">
+                <p id="codexStatusDetail" class="codex-status-detail">Connect the Thread folder to begin.</p>
+                <section id="codexResponseWrap" class="codex-response" hidden>
+                  <div class="codex-response-head">
+                    <span>Latest response</span>
+                    <time id="codexLastRun"></time>
+                  </div>
+                  <div id="codexResponse"></div>
+                </section>
+              </div>
+            </article>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <div id="helpModal" class="modal" hidden aria-hidden="true" role="dialog" aria-labelledby="helpModalTitle">
+      <div class="modal-backdrop" data-close="modal"></div>
+      <div class="modal-panel" role="document">
+        <div class="modal-head">
+          <h2 id="helpModalTitle">Keyboard Shortcuts</h2>
+          <button class="modal-close" type="button" data-close="modal" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <dl class="shortcut-list">
+            <div><dt><kbd>/</kbd> or <kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>Focus search</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>N</kbd></dt><dd>New thread</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>B</kbd></dt><dd>Toggle sidebar</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>1</kbd>…<kbd>9</kbd></dt><dd>Switch to thread #</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>E</kbd></dt><dd>Export data</dd></div>
+            <div><dt><kbd>Ctrl</kbd>+<kbd>L</kbd></dt><dd>Rename active thread</dd></div>
+            <div><dt><kbd>?</kbd></dt><dd>Open this help</dd></div>
+            <div><dt><kbd>Esc</kbd></dt><dd>Close dialog / blur input</dd></div>
+          </dl>
+          <p class="modal-foot-note">Shortcuts are disabled while you're typing in an input. Press <kbd>Esc</kbd> first.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="onboardingModal" class="modal" hidden aria-hidden="true" role="dialog" aria-labelledby="onboardingTitle">
+      <div class="modal-backdrop"></div>
+      <div class="modal-panel onboarding-panel" role="document">
+        <div class="modal-head">
+          <h2 id="onboardingTitle">Welcome to HEX</h2>
+        </div>
+        <div class="modal-body">
+          <p class="onboarding-lede">Pick where HEX should keep your <strong>thread folders</strong>. Each thread gets its own folder for files, notes, screenshots — anything you want to keep with it.</p>
+          <div class="onboarding-options" id="onboardingOptions">
+            <button class="onboarding-option recommended" type="button" data-root="documents">
+              <div class="onboarding-option-label">Documents <span class="tag">Recommended</span></div>
+              <div class="onboarding-option-path" id="rootDocumentsPath"></div>
+            </button>
+            <button class="onboarding-option" type="button" data-root="desktop">
+              <div class="onboarding-option-label">Desktop</div>
+              <div class="onboarding-option-path" id="rootDesktopPath"></div>
+            </button>
+            <button class="onboarding-option" type="button" data-root="custom">
+              <div class="onboarding-option-label">Choose another folder…</div>
+              <div class="onboarding-option-path">Browse to a custom location</div>
+            </button>
+          </div>
+          <p class="modal-foot-note">You can change this any time from <strong>Settings</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsModal" class="modal" hidden aria-hidden="true" role="dialog" aria-labelledby="settingsModalTitle">
+      <div class="modal-backdrop" data-close="modal"></div>
+      <div class="modal-panel" role="document">
+        <div class="modal-head">
+          <h2 id="settingsModalTitle">Settings</h2>
+          <button class="modal-close" type="button" data-close="modal" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <section class="settings-section">
+            <h3>Data folder</h3>
+            <p class="setting-note">Where your thread folders are kept.</p>
+            <code id="settingsRootPath" class="thread-folder-path"></code>
+            <div class="settings-actions">
+              <button id="settingsChangeRoot" class="subtle-button" type="button">Change folder…</button>
+              <button id="settingsOpenRoot" class="subtle-button" type="button">Open in Explorer</button>
+            </div>
+          </section>
+          <section class="settings-section">
+            <h3>Clean up</h3>
+            <p class="setting-note">Folders inside your data folder that aren't tied to any current thread.</p>
+            <div class="settings-actions">
+              <button id="settingsFindOrphans" class="subtle-button" type="button">Find orphan folders</button>
+            </div>
+            <ul id="settingsOrphans" class="orphans-list"></ul>
+          </section>
+          <section class="settings-section">
+            <h3>Browsing data</h3>
+            <p class="setting-note">Cache and cookies for sites loaded inside HEX. Cache size: <span id="settingsCacheSize">—</span></p>
+            <div class="settings-actions">
+              <button id="settingsClearCache" class="subtle-button" type="button">Clear cache only</button>
+              <button id="settingsClearAll" class="subtle-button danger" type="button">Clear everything (logs you out)</button>
+            </div>
+          </section>
+          <section class="settings-section">
+            <h3>About</h3>
+            <p class="setting-note">HEX · Your meta browser.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
