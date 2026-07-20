@@ -22,7 +22,7 @@ It is not a browser replacement. It is a calm continuity layer across applicatio
 
 - threads preserve intent
 - saved links keep relevant pages attached to the thread
-- quick notes and open loops preserve context
+- quick notes and Next Up preserve context
 - pins preserve the understanding accumulated while working
 - thread folders keep local materials attached to the work
 - an edge overlay keeps HEX available without becoming another destination

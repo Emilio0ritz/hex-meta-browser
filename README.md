@@ -40,8 +40,9 @@ The preview server only serves the static files. Thread file features are not av
 - Floats above the Windows desktop as a compact, always-available edge tab.
 - Expands into Thread, Links, and Files views.
 - Preserves the active thread and quick note using local storage.
-- Tracks open loops for the active thread.
+- Keeps one clear Next Up list for the active Thread.
 - Keeps per-thread concept pins with definitions, types, sources, and review state.
+- Shows the same Pins in the floating overlay and expanded workbench, with live synchronization between them.
 - Looks up a concise sourced definition from the pin form and offers a Google verification search.
 - Captures copied text from any Windows application into a new pin.
 - Saves and reopens links attached to each thread.
@@ -55,7 +56,7 @@ The preview server only serves the static files. Thread file features are not av
 - Opens the active thread's holding folder from the desktop app.
 - Lists held files with size, type, modified time, Open actions, and Copy Path actions.
 - Tracks an active thread as the center of the workflow.
-- Keeps queue items, open loops, notes, sticky Notion, research trail, and activity history per thread.
+- Keeps next steps, notes, pinned references, research activity, and meaningful history per Thread.
 - Connects the active Thread and its local folder to a persistent Codex session through Codex Dock.
 - Saves opened URLs and searches into a Recent Research Trail.
 - Shows contextual website shortcuts based on workflow mode.
@@ -75,9 +76,8 @@ HEX treats tabs as temporary and threads as persistent. Each thread stores:
 - title
 - workflow mode
 - notes
-- queue
-- open loops
-- sticky Notion page
+- next steps
+- pinned reference
 - Codex session ID, workspace folder, permission mode, status, and latest response preview
 - concept pins and learning state
 - recent research trail

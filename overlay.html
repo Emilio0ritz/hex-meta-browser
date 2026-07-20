@@ -57,11 +57,15 @@
           </div>
           <textarea id="quickNote" rows="9" spellcheck="true" placeholder="Capture the thought before switching context..."></textarea>
 
-          <div class="open-loop-row">
-            <input id="loopInput" class="text-input" type="text" placeholder="Add an open loop">
-            <button id="addLoop" class="primary-button" type="button">Add</button>
+          <div class="next-up-heading">
+            <span class="eyebrow">Next Up</span>
+            <span id="nextUpCount" class="save-state">0 remaining</span>
           </div>
-          <ul id="loopList" class="simple-list"></ul>
+          <div class="next-up-row">
+            <input id="nextUpInput" class="text-input" type="text" placeholder="What should happen next?">
+            <button id="addNextUp" class="primary-button" type="button">Add</button>
+          </div>
+          <ul id="nextUpList" class="simple-list"></ul>
         </section>
 
         <section class="view" data-view-panel="pins">

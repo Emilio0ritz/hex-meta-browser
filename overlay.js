@@ -1,4 +1,8 @@
 const STORAGE_KEY = "emilio.browserBase.v3";
+const LEGACY_DEMO_NEXT_STEPS = new Set([
+  "Try a search to see how HEX captures your trail",
+  "Save your three most-used destinations under Saved Links"
+]);
 
 const fallbackThread = {
   id: "thread_home",
@@ -37,9 +41,10 @@ const elements = {
   threadTitle: document.querySelector("#threadTitle"),
   quickNote: document.querySelector("#quickNote"),
   saveState: document.querySelector("#saveState"),
-  loopInput: document.querySelector("#loopInput"),
-  addLoop: document.querySelector("#addLoop"),
-  loopList: document.querySelector("#loopList"),
+  nextUpInput: document.querySelector("#nextUpInput"),
+  addNextUp: document.querySelector("#addNextUp"),
+  nextUpList: document.querySelector("#nextUpList"),
+  nextUpCount: document.querySelector("#nextUpCount"),
   pinCount: document.querySelector("#pinCount"),
   pinClipboard: document.querySelector("#pinClipboard"),
   newPin: document.querySelector("#newPin"),
@@ -108,14 +113,21 @@ function normalizeThread(id, thread = {}) {
     id,
     title: String(thread.title || "Untitled Thread"),
     notes: typeof thread.notes === "string" ? thread.notes : "",
-    queue: Array.isArray(thread.queue) ? thread.queue : [],
-    loops: Array.isArray(thread.loops) ? thread.loops : [],
+    queue: normalizeNextUpItems(thread.queue, thread.loops),
+    loops: [],
     links: Array.isArray(thread.links) ? thread.links : [],
     pins: Array.isArray(thread.pins) ? thread.pins.map(normalizePin) : [],
     researchTrail: Array.isArray(thread.researchTrail) ? thread.researchTrail : [],
     activity: Array.isArray(thread.activity) ? thread.activity : [],
     folderName: typeof thread.folderName === "string" ? thread.folderName : ""
   };
+}
+
+function normalizeNextUpItems(...collections) {
+  return collections.flatMap(items => Array.isArray(items) ? items : []).map(item => {
+    if (typeof item === "string") return { text: item, done: false };
+    return { text: String(item?.text || ""), done: Boolean(item?.done) };
+  }).filter(item => item.text && !LEGACY_DEMO_NEXT_STEPS.has(item.text));
 }
 
 function normalizePin(pin = {}) {
@@ -168,7 +180,7 @@ function uniqueFolderName(title) {
 function render() {
   renderThreadPicker();
   renderThread();
-  renderLoops();
+  renderNextUp();
   renderPins();
   renderLinks();
   renderSummary();
@@ -194,17 +206,25 @@ function renderThread() {
   if (document.activeElement !== elements.quickNote) elements.quickNote.value = thread.notes;
 }
 
-function renderLoops() {
+function renderNextUp() {
   const thread = currentThread();
-  elements.loopList.replaceChildren();
-  const loops = thread.loops.filter(item => !item.done);
-  if (!loops.length) return renderEmpty(elements.loopList, "No open loops. Your attention is clear.");
+  elements.nextUpList.replaceChildren();
+  const nextSteps = thread.queue.filter(item => !item.done);
+  elements.nextUpCount.textContent = `${nextSteps.length} remaining`;
+  if (!nextSteps.length) return renderEmpty(elements.nextUpList, "No next step yet.");
 
-  loops.forEach(item => {
+  nextSteps.forEach((item, index) => {
     const row = document.createElement("li");
     row.className = "list-row";
+    if (index === 0) row.classList.add("current-next");
     const main = document.createElement("div");
     main.className = "list-row-main";
+    if (index === 0) {
+      const marker = document.createElement("span");
+      marker.className = "next-up-marker";
+      marker.textContent = "Up next";
+      main.append(marker);
+    }
     const text = document.createElement("strong");
     text.textContent = item.text;
     main.append(text);
@@ -215,11 +235,11 @@ function renderLoops() {
     done.addEventListener("click", () => {
       item.done = true;
       saveState();
-      renderLoops();
+      renderNextUp();
       renderSummary();
     });
     row.append(main, done);
-    elements.loopList.append(row);
+    elements.nextUpList.append(row);
   });
 }
 
@@ -419,11 +439,11 @@ function rowButton(label, action, extraClass = "") {
 
 function renderSummary() {
   const threads = Object.values(state.threads).filter(thread => !thread.archived);
-  const loops = currentThread().loops.filter(item => !item.done).length;
+  const nextSteps = currentThread().queue.filter(item => !item.done).length;
   const pins = currentThread().pins.length;
   elements.edgeCount.textContent = String(pins);
   elements.edgeCount.title = `${pins} pin${pins === 1 ? "" : "s"} in the active thread`;
-  elements.footerSummary.textContent = `${pins} pin${pins === 1 ? "" : "s"} - ${loops} open loop${loops === 1 ? "" : "s"} - ${threads.length} thread${threads.length === 1 ? "" : "s"}`;
+  elements.footerSummary.textContent = `${pins} pin${pins === 1 ? "" : "s"} - ${nextSteps} next up - ${threads.length} thread${threads.length === 1 ? "" : "s"}`;
 }
 
 async function renderFiles() {
@@ -675,19 +695,19 @@ elements.quickNote.addEventListener("input", () => {
   saveState("Saving...");
 });
 
-function addLoop() {
-  const text = elements.loopInput.value.trim();
+function addNextUp() {
+  const text = elements.nextUpInput.value.trim();
   if (!text) return;
-  currentThread().loops.unshift({ text, done: false });
-  elements.loopInput.value = "";
+  currentThread().queue.unshift({ text, done: false });
+  elements.nextUpInput.value = "";
   saveState();
-  renderLoops();
+  renderNextUp();
   renderSummary();
 }
 
-elements.addLoop.addEventListener("click", addLoop);
-elements.loopInput.addEventListener("keydown", event => {
-  if (event.key === "Enter") addLoop();
+elements.addNextUp.addEventListener("click", addNextUp);
+elements.nextUpInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") addNextUp();
 });
 
 elements.newPin.addEventListener("click", () => openPinForm());

@@ -6,6 +6,10 @@ const LEGACY_KEYS = ["emilio.browserBase.v2", "emilio.browserBase.v1"];
 const SIDEBAR_KEY = "emilio.browserBase.sidebar";
 const SHOW_ARCHIVED_KEY = "emilio.browserBase.showArchived";
 const THEME_KEY = "emilio.browserBase.theme";
+const LEGACY_DEMO_NEXT_STEPS = new Set([
+  "Try a search to see how HEX captures your trail",
+  "Save your three most-used destinations under Saved Links"
+]);
 
 const IS_ELECTRON = typeof window !== "undefined" && !!window.bb && window.bb.env && window.bb.env.isElectron;
 
@@ -56,10 +60,7 @@ const defaultThread = {
   title: "Home",
   mode: "research",
   notes: "",
-  queue: [
-    { text: "Try a search to see how HEX captures your trail", done: false },
-    { text: "Save your three most-used destinations under Saved Links", done: false }
-  ],
+  queue: [],
   loops: [],
   links: [
     { name: "Google", url: "https://www.google.com" },
@@ -110,6 +111,8 @@ const state = loadState();
 let showArchived = localStorage.getItem(SHOW_ARCHIVED_KEY) === "1";
 let currentThreadFileCount = 0;
 const codexInstructionDrafts = new Map();
+let editingThreadPinId = null;
+const expandedThreadPinIds = new Set();
 
 // ── Thread folders (Electron native filesystem) ─────────────────────
 
@@ -400,9 +403,20 @@ const elements = {
   queueForm: document.querySelector("#queueForm"),
   queueInput: document.querySelector("#queueInput"),
   queueList: document.querySelector("#queueList"),
-  loopForm: document.querySelector("#loopForm"),
-  loopInput: document.querySelector("#loopInput"),
-  loopList: document.querySelector("#loopList"),
+  nextUpCount: document.querySelector("#nextUpCount"),
+  threadPinCount: document.querySelector("#threadPinCount"),
+  threadPinClipboard: document.querySelector("#threadPinClipboard"),
+  threadPinNew: document.querySelector("#threadPinNew"),
+  threadPinForm: document.querySelector("#threadPinForm"),
+  threadPinName: document.querySelector("#threadPinName"),
+  threadPinType: document.querySelector("#threadPinType"),
+  threadPinDefine: document.querySelector("#threadPinDefine"),
+  threadPinGoogle: document.querySelector("#threadPinGoogle"),
+  threadPinDefinitionStatus: document.querySelector("#threadPinDefinitionStatus"),
+  threadPinContent: document.querySelector("#threadPinContent"),
+  threadPinSource: document.querySelector("#threadPinSource"),
+  threadPinCancel: document.querySelector("#threadPinCancel"),
+  threadPinList: document.querySelector("#threadPinList"),
   notionForm: document.querySelector("#notionForm"),
   notionNameInput: document.querySelector("#notionNameInput"),
   notionUrlInput: document.querySelector("#notionUrlInput"),
@@ -779,24 +793,14 @@ function buildThreadRow(thread, index) {
   }
 
   const openQueue = thread.queue.filter(i => !i.done).length;
-  const openLoops = thread.loops.filter(i => !i.done).length;
-  if (openQueue + openLoops > 0) {
+  if (openQueue > 0) {
     const counts = document.createElement("span");
     counts.className = "thread-counts";
-    if (openQueue > 0) {
-      const q = document.createElement("span");
-      q.className = "thread-count queue";
-      q.textContent = openQueue;
-      q.title = `${openQueue} open queue item${openQueue === 1 ? "" : "s"}`;
-      counts.append(q);
-    }
-    if (openLoops > 0) {
-      const l = document.createElement("span");
-      l.className = "thread-count loop";
-      l.textContent = openLoops;
-      l.title = `${openLoops} open loop${openLoops === 1 ? "" : "s"}`;
-      counts.append(l);
-    }
+    const q = document.createElement("span");
+    q.className = "thread-count queue";
+    q.textContent = openQueue;
+    q.title = `${openQueue} next step${openQueue === 1 ? "" : "s"}`;
+    counts.append(q);
     titleBtn.append(counts);
   }
 
@@ -832,6 +836,7 @@ function buildThreadRow(thread, index) {
 
 function switchToThread(id) {
   if (!state.threads[id]) return;
+  closeThreadPinForm();
   state.activeThreadId = id;
   currentThreadFileCount = 0;
   hydrateInputs();
@@ -1273,13 +1278,21 @@ elements.refreshThreadFiles.addEventListener("click", () => loadThreadFiles());
 
 elements.queueForm.addEventListener("submit", event => {
   event.preventDefault();
-  addTextItem("queue", elements.queueInput);
+  addNextUpItem(elements.queueInput);
 });
 
-elements.loopForm.addEventListener("submit", event => {
-  event.preventDefault();
-  addTextItem("loops", elements.loopInput);
+elements.threadPinNew.addEventListener("click", () => openThreadPinForm());
+elements.threadPinCancel.addEventListener("click", closeThreadPinForm);
+elements.threadPinClipboard.addEventListener("click", captureThreadPinClipboard);
+elements.threadPinDefine.addEventListener("click", defineThreadPin);
+elements.threadPinGoogle.addEventListener("click", searchThreadPinOnGoogle);
+elements.threadPinName.addEventListener("keydown", event => {
+  if (event.key === "Enter" && elements.threadPinType.value === "definition") {
+    event.preventDefault();
+    defineThreadPin();
+  }
 });
+elements.threadPinForm.addEventListener("submit", saveThreadPin);
 
 elements.notionForm.addEventListener("submit", event => {
   event.preventDefault();
@@ -1502,6 +1515,18 @@ initFileSystem();
 initThreadFileDrop();
 maybeShowOnboarding();
 initEmbeddedView();
+window.addEventListener("storage", event => {
+  if (event.key !== STORAGE_KEY || !event.newValue) return;
+  const previousThreadId = state.activeThreadId;
+  Object.assign(state, loadState());
+  if (state.activeThreadId !== previousThreadId) {
+    closeThreadPinForm();
+    expandedThreadPinIds.clear();
+  }
+  hydrateInputs();
+  render();
+  loadThreadFiles();
+});
 // Restore the active thread's last URL on boot
 restoreThreadView();
 refreshCodexConnection();
@@ -1548,10 +1573,7 @@ function buildCodexContext(thread) {
     notes: thread.notes || "",
     pins: (thread.pins || []).map(pin => ({ name: pin.name, content: pin.content, source: pin.source })),
     sources: collectCodexSources(thread),
-    nextSteps: [
-      ...thread.queue.filter(item => !item.done).map(item => item.text),
-      ...thread.loops.filter(item => !item.done).map(item => item.text)
-    ]
+    nextSteps: thread.queue.filter(item => !item.done).map(item => item.text)
   };
 }
 
@@ -1701,16 +1723,17 @@ function initCodexDock() {
   }
 }
 
-function addTextItem(collection, input) {
+function addNextUpItem(input) {
   const text = input.value.trim();
   if (!text) return;
   const thread = currentThread();
-  thread[collection].unshift({ text, done: false });
+  thread.queue.unshift({ text, done: false });
   input.value = "";
-  addActivity(collection === "queue" ? `Added to Next Up: ${text}` : `Added to Needs Attention: ${text}`);
+  addActivity(`Added to Next Up: ${text}`);
   touchThread(thread);
   saveState();
   render();
+  toast("Added to Next Up");
 }
 
 function render() {
@@ -1720,15 +1743,9 @@ function render() {
   renderSearchWorkspace();
   renderOrientation();
   renderStickyNotion();
+  renderThreadPins();
   renderCodexDock();
-  renderItemList(elements.queueList, currentThread().queue, {
-    kind: "queue",
-    emptyText: "Nothing in Next Up"
-  });
-  renderItemList(elements.loopList, currentThread().loops, {
-    kind: "loops",
-    emptyText: "Nothing needs attention"
-  });
+  renderNextUp();
   elements.clearDone.hidden = !currentThread().queue.some(item => item.done);
   renderLinks();
   renderResearchTrail();
@@ -1741,7 +1758,7 @@ function renderCodexDock() {
   const thread = currentThread();
   const codex = ensureCodexState(thread);
   const sources = collectCodexSources(thread);
-  const nextSteps = thread.queue.filter(item => !item.done).length + thread.loops.filter(item => !item.done).length;
+  const nextSteps = thread.queue.filter(item => !item.done).length;
   const statusLabels = {
     unavailable: "Codex unavailable",
     "sign-in-required": "Sign-in required",
@@ -1855,11 +1872,14 @@ function renderSearchWorkspace() {
 function renderOrientation() {
   const thread = currentThread();
   const nextItem = thread.queue.find(item => !item.done)?.text;
-  const openLoops = thread.loops.filter(item => !item.done).length;
+  const remaining = thread.queue.filter(item => !item.done).length;
   const sticky = thread.stickyNotion ? "Reference pinned" : "No pinned reference";
   const continuation = nextItem ? `Next: ${nextItem}` : modeCopy[thread.mode];
+  const queueState = remaining > 1
+    ? `${remaining - 1} more after this`
+    : remaining === 1 ? "One clear next step" : "Nothing queued";
   elements.resumeLine.textContent =
-    `${continuation} — ${openLoops} need${openLoops === 1 ? "s" : ""} attention — ${sticky}`;
+    `${continuation} — ${queueState} — ${sticky}`;
 }
 
 function renderStickyNotion() {
@@ -1894,13 +1914,18 @@ function renderStickyNotion() {
   elements.stickyNotion.append(copy, open);
 }
 
-function renderItemList(target, items, { kind, emptyText }) {
+function renderNextUp() {
+  const target = elements.queueList;
+  const items = currentThread().queue;
+  const remaining = items.filter(item => !item.done).length;
+  const currentItem = items.find(item => !item.done);
   target.replaceChildren();
+  elements.nextUpCount.textContent = `${remaining} remaining`;
 
   if (items.length === 0) {
     const empty = document.createElement("li");
     empty.className = "module-empty";
-    empty.textContent = emptyText;
+    empty.textContent = "No next step yet";
     target.append(empty);
     return;
   }
@@ -1909,24 +1934,32 @@ function renderItemList(target, items, { kind, emptyText }) {
     const row = document.createElement("li");
     row.className = "item";
     if (item.done) row.classList.add("done");
+    if (item === currentItem) row.classList.add("current-next");
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = item.done;
-    checkbox.setAttribute("aria-label", kind === "loops" ? `Resolve ${item.text}` : `Complete ${item.text}`);
+    checkbox.setAttribute("aria-label", `Complete ${item.text}`);
     checkbox.addEventListener("change", () => {
       item.done = checkbox.checked;
-      const action = kind === "loops"
-        ? (item.done ? "Resolved" : "Reopened")
-        : (item.done ? "Completed Next Up item" : "Reopened Next Up item");
+      const action = item.done ? "Completed Next Up item" : "Reopened Next Up item";
       addActivity(`${action}: ${item.text}`);
       touchThread(currentThread());
       saveState();
       render();
     });
 
+    const copy = document.createElement("div");
+    copy.className = "item-copy";
+    if (item === currentItem) {
+      const marker = document.createElement("span");
+      marker.className = "item-marker";
+      marker.textContent = "Up next";
+      copy.append(marker);
+    }
     const label = document.createElement("span");
     label.textContent = item.text;
+    copy.append(label);
 
     const remove = document.createElement("button");
     remove.className = "remove";
@@ -1934,16 +1967,269 @@ function renderItemList(target, items, { kind, emptyText }) {
     remove.textContent = "x";
     remove.setAttribute("aria-label", `Remove ${item.text}`);
     remove.addEventListener("click", () => {
-      addActivity(`Removed from ${kind === "loops" ? "Needs Attention" : "Next Up"}: ${item.text}`);
+      addActivity(`Removed from Next Up: ${item.text}`);
       items.splice(index, 1);
       touchThread(currentThread());
       saveState();
       render();
     });
 
-    row.append(checkbox, label, remove);
+    row.append(checkbox, copy, remove);
     target.append(row);
   });
+}
+
+function renderThreadPins() {
+  const pins = currentThread().pins;
+  elements.threadPinList.replaceChildren();
+  elements.threadPinCount.textContent = `${pins.length} pin${pins.length === 1 ? "" : "s"}`;
+
+  if (!pins.length) {
+    const empty = document.createElement("li");
+    empty.className = "module-empty";
+    empty.textContent = "No pins in this Thread";
+    elements.threadPinList.append(empty);
+    return;
+  }
+
+  pins.forEach(pin => {
+    const item = document.createElement("li");
+    item.className = `thread-pin-item ${pin.status === "understood" ? "understood" : "needs-review"}`;
+
+    const details = document.createElement("details");
+    details.open = expandedThreadPinIds.has(pin.id);
+    details.addEventListener("toggle", () => {
+      if (details.open) expandedThreadPinIds.add(pin.id);
+      else expandedThreadPinIds.delete(pin.id);
+    });
+
+    const summary = document.createElement("summary");
+    const identity = document.createElement("span");
+    identity.className = "thread-pin-identity";
+    const name = document.createElement("strong");
+    name.textContent = pin.name;
+    const type = document.createElement("span");
+    type.className = "thread-pin-type";
+    type.textContent = pin.type;
+    identity.append(name, type);
+
+    const status = document.createElement("span");
+    status.className = "thread-pin-status";
+    status.textContent = pin.status === "understood" ? "Understood" : "Review";
+    summary.append(identity, status);
+
+    const body = document.createElement("div");
+    body.className = "thread-pin-body";
+    const content = document.createElement("p");
+    content.className = "thread-pin-content";
+    content.textContent = pin.content || "No content yet.";
+    body.append(content);
+
+    if (pin.source) {
+      const source = document.createElement("button");
+      source.className = "thread-pin-source";
+      source.type = "button";
+      source.textContent = domainLabel(pin.source);
+      source.title = pin.source;
+      source.addEventListener("click", () => {
+        addActivity(`Opened Pin source: ${pin.name}`);
+        navigateEmbedded(pin.source, { title: pin.name, source: "pin" });
+      });
+      body.append(source);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "thread-pin-actions";
+    actions.append(
+      threadPinAction(pin.status === "understood" ? "Mark for review" : "Mark understood", () => {
+        pin.status = pin.status === "understood" ? "review" : "understood";
+        pin.updatedAt = new Date().toISOString();
+        addActivity(`${pin.status === "understood" ? "Understood" : "Returned to review"} Pin: ${pin.name}`);
+        saveState();
+        render();
+      }),
+      threadPinAction("Copy", () => copyThreadPin(pin)),
+      threadPinAction("Edit", () => openThreadPinForm(pin)),
+      threadPinAction("Remove", () => removeThreadPin(pin), "thread-pin-remove")
+    );
+    body.append(actions);
+    details.append(summary, body);
+    item.append(details);
+    elements.threadPinList.append(item);
+  });
+}
+
+function threadPinAction(label, action, className = "") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `subtle-button ${className}`.trim();
+  button.textContent = label;
+  button.addEventListener("click", action);
+  return button;
+}
+
+function openThreadPinForm(pin = null, capturedText = "") {
+  editingThreadPinId = pin?.id || null;
+  elements.threadPinName.value = pin?.name || "";
+  elements.threadPinType.value = pin?.type || "definition";
+  elements.threadPinContent.value = pin?.content || capturedText;
+  elements.threadPinSource.value = pin?.source || "";
+  setThreadPinDefinitionStatus("");
+  elements.threadPinForm.hidden = false;
+  elements.threadPinName.focus();
+  if (pin) elements.threadPinName.select();
+}
+
+function closeThreadPinForm() {
+  editingThreadPinId = null;
+  elements.threadPinForm.reset();
+  elements.threadPinType.value = "definition";
+  setThreadPinDefinitionStatus("");
+  elements.threadPinForm.hidden = true;
+}
+
+function setThreadPinDefinitionStatus(message, isError = false) {
+  elements.threadPinDefinitionStatus.textContent = message;
+  elements.threadPinDefinitionStatus.classList.toggle("error", isError);
+}
+
+function threadPinGoogleUrl(term) {
+  return `https://www.google.com/search?q=${encodeURIComponent(`define ${term}`)}`;
+}
+
+function searchThreadPinOnGoogle() {
+  const term = elements.threadPinName.value.trim();
+  if (!term) {
+    elements.threadPinName.focus();
+    return setThreadPinDefinitionStatus("Enter a term first", true);
+  }
+  navigateEmbedded(threadPinGoogleUrl(term), { title: `Define ${term}`, source: "pin search" });
+}
+
+async function defineThreadPin() {
+  const term = elements.threadPinName.value.trim();
+  if (!term) {
+    elements.threadPinName.focus();
+    return setThreadPinDefinitionStatus("Enter a term first", true);
+  }
+  if (!IS_ELECTRON || !window.bb.knowledge) {
+    return setThreadPinDefinitionStatus("Definition lookup requires the HEX desktop app", true);
+  }
+
+  elements.threadPinDefine.disabled = true;
+  elements.threadPinDefine.textContent = "Finding...";
+  setThreadPinDefinitionStatus("Looking it up");
+  try {
+    const thread = currentThread();
+    const context = [thread.title, thread.notes].filter(Boolean).join(". ");
+    const result = await window.bb.knowledge.define(term, context);
+    if (!result?.definition) throw new Error("No concise definition found");
+    elements.threadPinType.value = "definition";
+    elements.threadPinContent.value = result.definition;
+    elements.threadPinSource.value = result.source || "";
+    setThreadPinDefinitionStatus(result.sourceLabel || "Definition found");
+    elements.threadPinContent.focus();
+  } catch (error) {
+    const message = String(error?.message || "Definition unavailable")
+      .replace(/^Error invoking remote method 'knowledge:define': Error: /, "");
+    setThreadPinDefinitionStatus(message, true);
+  } finally {
+    elements.threadPinDefine.disabled = false;
+    elements.threadPinDefine.textContent = "Define term";
+  }
+}
+
+async function captureThreadPinClipboard() {
+  try {
+    const text = IS_ELECTRON && window.bb.clipboard
+      ? await window.bb.clipboard.readText()
+      : await navigator.clipboard.readText();
+    if (!text.trim()) return toast("Clipboard is empty");
+    openThreadPinForm(null, text.trim());
+  } catch {
+    toast("HEX could not read the clipboard");
+  }
+}
+
+function normalizedThreadPinSource(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(normalizeUrl(value));
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function saveThreadPin(event) {
+  event.preventDefault();
+  const name = elements.threadPinName.value.trim();
+  const content = elements.threadPinContent.value.trim();
+  const sourceText = elements.threadPinSource.value.trim();
+  const source = normalizedThreadPinSource(sourceText);
+  if (!name || !content) return toast("Add a title and content");
+  if (sourceText && !source) return toast("Enter a valid source URL");
+
+  const thread = currentThread();
+  const existing = editingThreadPinId
+    ? thread.pins.find(pin => pin.id === editingThreadPinId)
+    : null;
+  const now = new Date().toISOString();
+
+  if (existing) {
+    Object.assign(existing, {
+      name,
+      type: elements.threadPinType.value,
+      content,
+      source,
+      updatedAt: now
+    });
+    addActivity(`Updated Pin: ${name}`);
+  } else {
+    const pin = normalizePin({
+      id: `pin_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      type: elements.threadPinType.value,
+      content,
+      source,
+      status: "review",
+      createdAt: now,
+      updatedAt: now
+    });
+    thread.pins.unshift(pin);
+    expandedThreadPinIds.add(pin.id);
+    addActivity(`Created Pin: ${name}`);
+  }
+
+  closeThreadPinForm();
+  saveState();
+  render();
+  toast(existing ? "Pin updated" : "Pin saved");
+}
+
+async function copyThreadPin(pin) {
+  const text = `${pin.name}\n${pin.content}`;
+  try {
+    if (IS_ELECTRON && window.bb.clipboard) await window.bb.clipboard.writeText(text);
+    else await navigator.clipboard.writeText(text);
+    toast("Pin copied");
+  } catch {
+    toast("HEX could not copy this Pin");
+  }
+}
+
+function removeThreadPin(pin) {
+  if (!window.confirm(`Remove Pin "${pin.name}"?`)) return;
+  const thread = currentThread();
+  const index = thread.pins.findIndex(item => item.id === pin.id);
+  if (index === -1) return;
+  thread.pins.splice(index, 1);
+  expandedThreadPinIds.delete(pin.id);
+  if (editingThreadPinId === pin.id) closeThreadPinForm();
+  addActivity(`Removed Pin: ${pin.name}`);
+  saveState();
+  render();
+  toast("Pin removed");
 }
 
 function renderLinks() {
@@ -2304,8 +2590,8 @@ function migrateLegacy(saved) {
     title: saved.activeThread || defaultThread.title,
     mode: saved.mode || defaultThread.mode,
     notes: saved.scratchpad || "",
-    queue: normalizeItems(saved.queue, defaultThread.queue),
-    loops: normalizeItems(saved.loops, defaultThread.loops),
+    queue: mergeNextUpItems(saved.queue, saved.loops, defaultThread.queue),
+    loops: [],
     links: Array.isArray(saved.links) ? saved.links : structuredClone(defaultThread.links),
     stickyNotion: migrateStickyNotion(saved),
     researchTrail: [],
@@ -2336,10 +2622,10 @@ function normalizeThreads(threads) {
       ...structuredClone(defaultThread),
       ...thread,
       id,
-      queue: normalizeItems(thread.queue, []),
-      loops: normalizeItems(thread.loops, []),
+      queue: mergeNextUpItems(thread.queue, thread.loops),
+      loops: [],
       links: Array.isArray(thread.links) ? thread.links : [],
-      pins: Array.isArray(thread.pins) ? thread.pins : [],
+      pins: Array.isArray(thread.pins) ? thread.pins.map(normalizePin) : [],
       stickyNotion: thread.stickyNotion || null,
       codex: normalizeCodex(thread.codex, true),
       researchTrail: Array.isArray(thread.researchTrail) ? thread.researchTrail : [],
@@ -2399,6 +2685,26 @@ function normalizeItems(items, fallback) {
     if (typeof item === "string") return { text: item, done: false };
     return { text: item.text || "", done: Boolean(item.done) };
   }).filter(item => item.text);
+}
+
+function normalizePin(pin = {}) {
+  const types = ["definition", "question", "quote", "formula", "example", "general"];
+  return {
+    id: String(pin.id || `pin_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
+    name: String(pin.name || "Untitled Pin"),
+    type: types.includes(pin.type) ? pin.type : "general",
+    content: String(pin.content || ""),
+    source: String(pin.source || ""),
+    status: pin.status === "understood" ? "understood" : "review",
+    createdAt: pin.createdAt || new Date().toISOString(),
+    updatedAt: pin.updatedAt || new Date().toISOString()
+  };
+}
+
+function mergeNextUpItems(queue, legacyLoops, fallback = []) {
+  const queueItems = normalizeItems(queue, fallback);
+  const loopItems = normalizeItems(legacyLoops, []);
+  return [...queueItems, ...loopItems].filter(item => !LEGACY_DEMO_NEXT_STEPS.has(item.text));
 }
 
 function saveState() {

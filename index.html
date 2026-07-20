@@ -148,16 +148,62 @@
           <article class="panel primary">
             <div class="panel-head split">
               <div>
-                <p class="label">Current Thread</p>
-                <h2>Next Up</h2>
+                <p class="label">Your next return point</p>
+                <div class="next-up-title">
+                  <h2>Next Up</h2>
+                  <span id="nextUpCount" class="next-up-count">0 remaining</span>
+                </div>
               </div>
               <button id="clearDone" class="subtle-button" type="button">Remove completed</button>
             </div>
             <form id="queueForm" class="inline-form">
-              <input id="queueInput" type="text" placeholder="Add a page, question, or task">
-              <button type="submit">Add item</button>
+              <input id="queueInput" type="text" placeholder="What should happen next?">
+              <button type="submit">Add next step</button>
             </form>
             <ul id="queueList" class="item-list"></ul>
+          </article>
+
+          <article class="panel thread-pins-panel" aria-labelledby="threadPinsTitle">
+            <div class="panel-head split">
+              <div>
+                <p class="label">Thread knowledge</p>
+                <div class="thread-pins-title">
+                  <h2 id="threadPinsTitle">Pins</h2>
+                  <span id="threadPinCount" class="next-up-count">0 pins</span>
+                </div>
+              </div>
+              <div class="thread-pins-toolbar">
+                <button id="threadPinClipboard" class="subtle-button" type="button">Pin clipboard</button>
+                <button id="threadPinNew" type="button">Add pin</button>
+              </div>
+            </div>
+
+            <form id="threadPinForm" class="thread-pin-form" hidden>
+              <div class="thread-pin-form-row">
+                <input id="threadPinName" type="text" placeholder="Term or title" autocomplete="off" required>
+                <select id="threadPinType" aria-label="Pin type">
+                  <option value="definition">Definition</option>
+                  <option value="question">Question</option>
+                  <option value="quote">Quote</option>
+                  <option value="formula">Formula</option>
+                  <option value="example">Example</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+              <div class="thread-pin-lookup-row">
+                <button id="threadPinDefine" class="subtle-button" type="button">Define term</button>
+                <button id="threadPinGoogle" class="subtle-button" type="button">Search Google</button>
+                <span id="threadPinDefinitionStatus" class="thread-pin-definition-status" aria-live="polite"></span>
+              </div>
+              <textarea id="threadPinContent" rows="4" spellcheck="true" placeholder="Meaning, explanation, or captured text" required></textarea>
+              <input id="threadPinSource" type="url" placeholder="Source URL (optional)">
+              <div class="thread-pin-form-actions">
+                <button id="threadPinCancel" class="subtle-button" type="button">Cancel</button>
+                <button type="submit">Save pin</button>
+              </div>
+            </form>
+
+            <ul id="threadPinList" class="thread-pin-list"></ul>
           </article>
 
           <article class="panel notes-panel">
@@ -210,18 +256,6 @@
               <code id="threadFolderPath" class="thread-folder-path"></code>
               <ul id="threadFiles" class="thread-file-list"></ul>
               <p id="threadFilesStatus" class="dock-status" aria-live="polite"></p>
-            </article>
-
-            <article class="panel loops-panel">
-              <div class="panel-head">
-                <p class="label">Unresolved work</p>
-                <h2>Needs Attention</h2>
-              </div>
-              <form id="loopForm" class="inline-form">
-                <input id="loopInput" type="text" placeholder="Add a question, decision, or unfinished task">
-                <button type="submit">Add item</button>
-              </form>
-              <ul id="loopList" class="compact-list"></ul>
             </article>
 
             <article class="panel sticky-panel">

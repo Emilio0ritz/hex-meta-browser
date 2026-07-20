@@ -946,6 +946,19 @@ button:focus-visible {
   list-style: none;
 }
 
+.next-up-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.next-up-count {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
 .item {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) 38px;
@@ -956,6 +969,195 @@ button:focus-visible {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface);
+}
+
+.item.current-next {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.item-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item-marker {
+  color: var(--accent-ink);
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.thread-pins-title,
+.thread-pins-toolbar,
+.thread-pin-lookup-row,
+.thread-pin-form-actions,
+.thread-pin-actions {
+  display: flex;
+  align-items: center;
+}
+
+.thread-pins-title {
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.thread-pins-toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.thread-pin-form {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--panel-deep);
+}
+
+.thread-pin-form[hidden] {
+  display: none;
+}
+
+.thread-pin-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px;
+  gap: 8px;
+}
+
+.thread-pin-form textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+
+.thread-pin-lookup-row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.thread-pin-lookup-row .subtle-button {
+  min-height: 34px;
+}
+
+.thread-pin-definition-status {
+  min-width: 0;
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-align: right;
+}
+
+.thread-pin-definition-status.error {
+  color: var(--danger);
+}
+
+.thread-pin-form-actions {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.thread-pin-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thread-pin-item {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.thread-pin-item.understood {
+  border-left-color: var(--green);
+}
+
+.thread-pin-item summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 9px 11px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.thread-pin-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.thread-pin-identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.thread-pin-identity strong,
+.thread-pin-content {
+  overflow-wrap: anywhere;
+}
+
+.thread-pin-type,
+.thread-pin-status {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+  text-transform: capitalize;
+}
+
+.thread-pin-item.understood .thread-pin-status {
+  color: var(--green);
+}
+
+.thread-pin-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 11px 11px;
+  border-top: 1px solid var(--line);
+}
+
+.thread-pin-content {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.thread-pin-source {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.thread-pin-actions {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.thread-pin-actions button {
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 0.76rem;
+}
+
+.thread-pin-actions .thread-pin-remove {
+  color: var(--danger);
 }
 
 .item input {
@@ -1359,11 +1561,6 @@ button:focus-visible {
 .thread-count.queue {
   background: var(--accent-soft);
   color: var(--accent-ink);
-}
-
-.thread-count.loop {
-  background: var(--danger-soft);
-  color: var(--warm);
 }
 
 .thread-item-actions {
@@ -2379,6 +2576,14 @@ input {
   .workspace-grid,
   .contextual-row {
     grid-template-columns: 1fr;
+  }
+
+  .thread-pin-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .thread-pins-toolbar {
+    justify-content: flex-start;
   }
 
   .thread-files-actions,
