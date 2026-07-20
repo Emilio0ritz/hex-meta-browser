@@ -19,25 +19,26 @@ HEX starts as a small tab on the right edge of the Windows desktop. Click it to 
 
 See `LAUNCHING_HEX.md` for simple launch and troubleshooting instructions.
 
-## Legacy browser preview
+## Expanded-window annotation preview
 
-The original browser workspace can still be previewed with:
+Launch the production expanded-window renderer in a safe browser review mode with:
 
 ```powershell
-node preview-server.mjs
+npm run preview
 ```
 
 Then open:
 
 ```text
-http://127.0.0.1:8765
+http://127.0.0.1:8765/?preview=annotation
 ```
 
-The preview server only serves the static files. Thread file features are not available in the web preview (the Files view shows "Thread files are a desktop-app feature."); use the HEX desktop app for those.
+The preview uses the same `index.html`, `style.css`, and `app.js` as the packaged Electron main window. It injects isolated representative Thread data so every major module can be reviewed in Codex Annotation Mode. Files and Codex Dock show safe preview states; they never access the computer or run Codex from the browser. Add `&reset=1` to restore the original review data.
 
 ## What It Does
 
 - Floats above the Windows desktop as a compact, always-available edge tab.
+- Uses the bee as a movable Thread handle in both windows: click for capture actions, drag to place it, or return it home.
 - Expands into Thread, Links, and Files views.
 - Preserves the active thread and quick note using local storage.
 - Keeps one clear Next Up list for the active Thread.
@@ -70,6 +71,12 @@ The preview server only serves the static files. Thread file features are not av
 
 HEX data is stored in local storage. Codex Dock also uses the local Codex session store managed by the official Codex runtime.
 
+## Bee Thread Handle
+
+The bee is a compact entry point into the active Thread, not a chatbot. Click it to pin the current clipboard, move focus to a new Next Up item, or resume the Thread in the expanded workspace. Dragging the bee snaps it safely inside the current window and saves a separate position for the main workspace and floating overlay. **Return bee home** clears only that saved position.
+
+Its occasional glance and facial change are quiet idle states. They do not display messages, interrupt work, or trigger actions, and motion is disabled when the system requests reduced motion.
+
 ## Thread Workspace
 
 HEX treats tabs as temporary and threads as persistent. Each thread stores:
@@ -84,7 +91,7 @@ HEX treats tabs as temporary and threads as persistent. Each thread stores:
 - recent research trail
 - activity history
 
-Thread file features (folders, file lists, opening files) run through the Electron desktop app. The legacy preview server serves static files only.
+Thread file features (folders, file lists, opening files) run through the Electron desktop app. The annotation preview renders representative files but keeps native actions disabled.
 
 ## Codex Dock
 

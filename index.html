@@ -19,6 +19,7 @@
       })();
     </script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="bee-controller.css">
   </head>
   <body>
     <div class="layout">
@@ -37,25 +38,12 @@
           <div class="brand-row">
             <div class="brand-lockup">
               <button id="sidebarToggle" class="sidebar-toggle" type="button" title="Toggle threads (Ctrl+B)">☰</button>
-              <div>
-                <h1>HEX</h1>
+              <div class="brand-identity">
+                <img class="hex-official-logo" src="assets/hex-official-logo.png" alt="Hex" width="1057" height="554">
                 <p class="kicker">Thread workspace</p>
               </div>
             </div>
-            <div class="bee-mascot" aria-hidden="true">
-              <span class="bee-wing wing-left"></span>
-              <span class="bee-wing wing-right"></span>
-              <span class="bee-body">
-                <span class="bee-stripe stripe-one"></span>
-                <span class="bee-stripe stripe-two"></span>
-                <span class="bee-face">
-                  <span class="shade lens-left"></span>
-                  <span class="shade bridge"></span>
-                  <span class="shade lens-right"></span>
-                  <span class="smile"></span>
-                </span>
-              </span>
-            </div>
+            <div id="threadBee" class="thread-bee-host" data-bee-surface="main"></div>
             <div class="toolbar" role="toolbar" aria-label="App actions">
               <button id="exportBtn" class="toolbar-btn" type="button" title="Export data (Ctrl+E)">
                 <span class="tb-icon">⤓</span> Export
@@ -447,6 +435,7 @@
 
     <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
 
+    <script src="bee-controller.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

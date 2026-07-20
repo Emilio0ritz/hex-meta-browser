@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>HEX Overlay</title>
     <link rel="stylesheet" href="overlay.css">
+    <link rel="stylesheet" href="bee-controller.css">
   </head>
   <body class="is-collapsed">
     <button id="edgeTab" class="edge-tab" type="button" aria-label="Open HEX">
@@ -22,6 +23,7 @@
             <span>Keep your work together</span>
           </div>
         </div>
+        <div id="threadBee" class="thread-bee-host" data-bee-surface="overlay"></div>
         <div class="window-actions">
           <button id="openManager" class="icon-button" type="button" title="Open full workspace">[]</button>
           <button id="collapsePanel" class="icon-button" type="button" title="Collapse">&gt;</button>
@@ -160,6 +162,7 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="bee-controller.js"></script>
     <script src="overlay.js"></script>
   </body>
 </html>

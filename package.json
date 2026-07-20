@@ -9,8 +9,9 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging",
+    "preview": "node preview-server.mjs",
     "test": "node --test",
-    "check": "node --check app.js && node --check main.js && node --check preload.js && node --check codex-service.js",
+    "check": "node --check app.js && node --check overlay.js && node --check bee-controller.js && node --check main.js && node --check preload.js && node --check codex-service.js",
     "smoke:codex": "node scripts/codex-sdk-smoke.js"
   },
   "dependencies": {

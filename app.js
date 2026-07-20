@@ -12,6 +12,11 @@ const LEGACY_DEMO_NEXT_STEPS = new Set([
 ]);
 
 const IS_ELECTRON = typeof window !== "undefined" && !!window.bb && window.bb.env && window.bb.env.isElectron;
+const PREVIEW_CONFIG = typeof window !== "undefined" ? window.__HEX_PREVIEW__ : null;
+const PREVIEW_MODE = !IS_ELECTRON && PREVIEW_CONFIG?.enabled === true;
+const ACTIVE_STORAGE_KEY = PREVIEW_MODE && PREVIEW_CONFIG.storageKey
+  ? PREVIEW_CONFIG.storageKey
+  : STORAGE_KEY;
 
 const engines = {
   google: query => `https://www.google.com/search?q=${encodeURIComponent(query)}`,
@@ -113,6 +118,7 @@ let currentThreadFileCount = 0;
 const codexInstructionDrafts = new Map();
 let editingThreadPinId = null;
 const expandedThreadPinIds = new Set();
+let threadBeeController = null;
 
 // ── Thread folders (Electron native filesystem) ─────────────────────
 
@@ -169,6 +175,15 @@ async function backfillThreadFolders() {
 }
 
 async function loadThreadFiles() {
+  if (PREVIEW_MODE) {
+    const thread = currentThread();
+    const files = PREVIEW_CONFIG.filesByThread?.[thread.id] || [];
+    const folderPath = files.length || thread.folderName
+      ? `${state.global.dataRoot}\\${thread.folderName}`
+      : PREVIEW_CONFIG.folderPath || "";
+    renderThreadFiles(folderPath, files);
+    return;
+  }
   if (!IS_ELECTRON) {
     renderThreadFileMessage("Thread files are a desktop-app feature.");
     return;
@@ -218,7 +233,10 @@ function renderThreadFiles(folderPath, files) {
     const open = document.createElement("button");
     open.type = "button";
     open.textContent = "Open";
+    open.disabled = !IS_ELECTRON;
+    if (!IS_ELECTRON) open.title = "Available in the HEX desktop app";
     open.addEventListener("click", async () => {
+      if (!IS_ELECTRON) return;
       await window.bb.data.openFile(file.path);
       addActivity(`Opened file: ${file.name}`);
       saveState();
@@ -229,6 +247,8 @@ function renderThreadFiles(folderPath, files) {
     reveal.type = "button";
     reveal.textContent = "Reveal";
     reveal.title = "Show in folder";
+    reveal.disabled = !IS_ELECTRON;
+    if (!IS_ELECTRON) reveal.title = "Available in the HEX desktop app";
     reveal.addEventListener("click", () => window.bb.data.revealFile(file.path));
 
     meta.append(name, detail);
@@ -355,6 +375,14 @@ function initThreadFileDrop() {
 }
 
 async function initFileSystem() {
+  if (PREVIEW_MODE) {
+    [elements.addThreadFilesBtn, elements.openThreadFolderBtn].forEach(button => {
+      button.disabled = true;
+      button.title = "Available in the HEX desktop app";
+    });
+    await loadThreadFiles();
+    return;
+  }
   if (!IS_ELECTRON) {
     renderThreadFileMessage("Thread files are a desktop-app feature.");
     return;
@@ -373,6 +401,7 @@ const elements = {
   clock: document.querySelector("#clock"),
   resumeLine: document.querySelector("#resumeLine"),
   threadInput: document.querySelector("#threadInput"),
+  threadBee: document.querySelector("#threadBee"),
   threadSidebar: document.querySelector("#threadSidebar"),
   sidebarToggle: document.querySelector("#sidebarToggle"),
   sidebarCollapse: document.querySelector("#sidebarCollapse"),
@@ -1511,13 +1540,14 @@ document.addEventListener("keydown", event => {
 setInterval(updateClock, 1000);
 updateClock();
 initCodexDock();
+initThreadBee();
 render();
 initFileSystem();
 initThreadFileDrop();
 maybeShowOnboarding();
 initEmbeddedView();
 window.addEventListener("storage", event => {
-  if (event.key !== STORAGE_KEY || !event.newValue) return;
+  if (event.key !== ACTIVE_STORAGE_KEY || !event.newValue) return;
   const previousThreadId = state.activeThreadId;
   Object.assign(state, loadState());
   if (state.activeThreadId !== previousThreadId) {
@@ -1712,6 +1742,7 @@ async function disconnectCodex() {
 }
 
 async function refreshCodexConnection() {
+  if (PREVIEW_MODE) return;
   const thread = currentThread();
   const codex = ensureCodexState(thread);
   if (!codex.workspacePath || !state.global.dataRoot || !thread.folderName || codex.status === "working") return;
@@ -1737,6 +1768,34 @@ function addNextUpItem(input) {
   toast("Added to Next Up");
 }
 
+function initThreadBee() {
+  if (!window.HexBee || !elements.threadBee) return;
+  threadBeeController = window.HexBee.mount({
+    host: elements.threadBee,
+    surface: "main",
+    getThreadTitle: () => currentThread().title,
+    onPinClipboard: quickPinCurrentClipboard,
+    onAddNextStep: focusNextUpFromBee,
+    onResumeThread: resumeThreadFromBee,
+    onReset: () => toast("Bee returned home"),
+    onError: () => toast("That bee action did not finish")
+  });
+}
+
+function focusNextUpFromBee() {
+  elements.queueForm.closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  elements.queueInput.focus({ preventScroll: true });
+  return true;
+}
+
+function resumeThreadFromBee() {
+  const thread = currentThread();
+  const nextStep = thread.queue.find(item => !item.done);
+  elements.queueForm.closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  toast(nextStep ? `Up next: ${nextStep.text}` : `${thread.title} is clear`);
+  return true;
+}
+
 function render() {
   renderModes();
   renderEngines();
@@ -1752,6 +1811,7 @@ function render() {
   renderResearchTrail();
   renderLog();
   renderThreadList();
+  threadBeeController?.refresh();
 }
 
 function renderCodexDock() {
@@ -1771,11 +1831,11 @@ function renderCodexDock() {
     failed: "Failed",
     interrupted: "Interrupted"
   };
-  const status = IS_ELECTRON ? codex.status : "unavailable";
+  const status = IS_ELECTRON || PREVIEW_MODE ? codex.status : "unavailable";
 
   elements.codexStatus.textContent = statusLabels[status] || "Not connected";
   elements.codexStatus.dataset.status = status;
-  elements.codexStatusDetail.textContent = IS_ELECTRON
+  elements.codexStatusDetail.textContent = IS_ELECTRON || PREVIEW_MODE
     ? codex.statusMessage
     : "Codex Dock requires the HEX desktop app.";
   const threadFolderPath = state.global.dataRoot && thread.folderName
@@ -1788,7 +1848,7 @@ function renderCodexDock() {
   elements.codexFolderAction.title = threadFolderPath
     ? "Open this Thread's Codex workspace folder"
     : "Choose a storage location and create this Thread's workspace folder";
-  elements.codexFolderAction.disabled = status === "working";
+  elements.codexFolderAction.disabled = PREVIEW_MODE || status === "working";
   elements.codexSessionStatus.textContent = codex.threadId
     ? `Session ${codex.threadId.slice(0, 8)} saved - resumes on Send`
     : "New session starts on first send";
@@ -1801,16 +1861,16 @@ function renderCodexDock() {
     const active = button.dataset.codexPermission === codex.permissionMode;
     button.classList.toggle("active", active);
     button.setAttribute("aria-checked", String(active));
-    button.disabled = status === "working";
+    button.disabled = PREVIEW_MODE || status === "working";
   });
 
   const needsReconnect = ["unavailable", "sign-in-required", "failed", "interrupted"].includes(status);
   elements.codexConnectBtn.hidden = Boolean(codex.workspacePath && !needsReconnect);
   elements.codexConnectBtn.textContent = codex.workspacePath ? "Check Codex again" : "Connect Codex";
-  elements.codexConnectBtn.disabled = status === "working";
+  elements.codexConnectBtn.disabled = PREVIEW_MODE || status === "working";
   elements.codexChangeFolder.textContent = state.global.dataRoot ? "Change folder" : "Connect folder";
-  elements.codexDisconnect.disabled = !codex.workspacePath && !codex.threadId;
-  elements.codexSend.disabled = !IS_ELECTRON || !codex.workspacePath || status === "working" || status === "unavailable" || (status === "failed" && Boolean(codex.threadId));
+  elements.codexDisconnect.disabled = PREVIEW_MODE || (!codex.workspacePath && !codex.threadId);
+  elements.codexSend.disabled = PREVIEW_MODE || !IS_ELECTRON || !codex.workspacePath || status === "working" || status === "unavailable" || (status === "failed" && Boolean(codex.threadId));
   elements.codexSend.textContent = status === "working" ? "Codex is working" : "Send to Codex";
 
   if (document.activeElement !== elements.codexInstruction) {
@@ -2149,6 +2209,50 @@ async function captureThreadPinClipboard() {
     openThreadPinForm(null, text.trim());
   } catch {
     toast("HEX could not read the clipboard");
+  }
+}
+
+async function quickPinCurrentClipboard() {
+  try {
+    const text = IS_ELECTRON && window.bb.clipboard
+      ? await window.bb.clipboard.readText()
+      : await navigator.clipboard.readText();
+    const content = String(text || "").trim();
+    if (!content) {
+      toast("Clipboard is empty");
+      return false;
+    }
+
+    let source = "";
+    if (!/\s/.test(content)) {
+      try {
+        const candidate = new URL(normalizeUrl(content));
+        if (["http:", "https:"].includes(candidate.protocol)) source = candidate.href;
+      } catch {}
+    }
+    const words = content.replace(/\s+/g, " ").split(" ");
+    const shortName = words.slice(0, 6).join(" ").slice(0, 60).trim();
+    const name = source ? prettyUrl(source) : `${shortName}${words.length > 6 ? "..." : ""}`;
+    const now = new Date().toISOString();
+    const thread = currentThread();
+    thread.pins.unshift(normalizePin({
+      name: name || "Clipboard Pin",
+      type: "general",
+      content,
+      source,
+      status: "review",
+      createdAt: now,
+      updatedAt: now
+    }));
+    addActivity(`Created Pin: ${name || "Clipboard Pin"}`);
+    touchThread(thread);
+    saveState();
+    render();
+    toast(`Pinned to ${thread.title}`);
+    return true;
+  } catch {
+    toast("HEX could not read the clipboard");
+    return false;
   }
 }
 
@@ -2537,8 +2641,16 @@ function formatBytes(bytes) {
 
 function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    if (PREVIEW_MODE && new URLSearchParams(window.location.search).has("reset")) {
+      localStorage.removeItem(ACTIVE_STORAGE_KEY);
+    }
+
+    const raw = localStorage.getItem(ACTIVE_STORAGE_KEY);
     if (raw) return mergeState(JSON.parse(raw));
+
+    if (PREVIEW_MODE && PREVIEW_CONFIG.state) {
+      return mergeState(structuredClone(PREVIEW_CONFIG.state));
+    }
 
     for (const key of LEGACY_KEYS) {
       const legacy = localStorage.getItem(key);
@@ -2711,5 +2823,5 @@ function mergeNextUpItems(queue, legacyLoops, fallback = []) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(ACTIVE_STORAGE_KEY, JSON.stringify(state));
 }

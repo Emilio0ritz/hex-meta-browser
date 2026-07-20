@@ -34,6 +34,7 @@ const elements = {
   edgeTab: document.querySelector("#edgeTab"),
   edgeCount: document.querySelector("#edgeCount"),
   panel: document.querySelector("#panel"),
+  threadBee: document.querySelector("#threadBee"),
   collapsePanel: document.querySelector("#collapsePanel"),
   openManager: document.querySelector("#openManager"),
   threadSelect: document.querySelector("#threadSelect"),
@@ -83,6 +84,7 @@ let editingPinId = null;
 let pinReview = null;
 let fileRenderVersion = 0;
 const expandedPinIds = new Set();
+let threadBeeController = null;
 
 function loadState() {
   try {
@@ -188,6 +190,45 @@ function render() {
   renderPins();
   renderLinks();
   renderSummary();
+  threadBeeController?.refresh();
+}
+
+function activateView(viewName) {
+  document.querySelectorAll(".view-tab").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.view === viewName);
+  });
+  document.querySelectorAll("[data-view-panel]").forEach(panel => {
+    panel.classList.toggle("active", panel.dataset.viewPanel === viewName);
+  });
+  if (viewName === "files") renderFiles();
+}
+
+function initThreadBee() {
+  if (!window.HexBee || !elements.threadBee) return;
+  threadBeeController = window.HexBee.mount({
+    host: elements.threadBee,
+    surface: "overlay",
+    getThreadTitle: () => currentThread().title,
+    onPinClipboard: async () => {
+      const text = (await window.bb.clipboard.readText()).trim();
+      if (!text) {
+        toast("Clipboard is empty");
+        return false;
+      }
+      const pinned = pinClipboardText(text);
+      if (pinned) activateView("pins");
+      return pinned;
+    },
+    onAddNextStep: () => {
+      activateView("thread");
+      elements.nextUpInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      elements.nextUpInput.focus({ preventScroll: true });
+      return true;
+    },
+    onResumeThread: () => window.bb.overlay.openManager(),
+    onReset: () => toast("Bee returned home"),
+    onError: () => toast("That bee action did not finish")
+  });
 }
 
 function renderThreadPicker() {
@@ -821,13 +862,14 @@ function clipboardPinName(text) {
 
 function pinClipboardText(value) {
   const text = String(value || "").trim();
-  if (!text) return;
+  if (!text) return false;
   state = loadState();
   const thread = currentThread();
   const url = singleClipboardUrl(text);
   const now = new Date().toISOString();
+  const name = url ? prettyUrl(new URL(url).origin) : clipboardPinName(text);
   thread.pins.unshift(normalizePin({
-    name: url ? prettyUrl(new URL(url).origin) : clipboardPinName(text),
+    name,
     type: "general",
     content: url || text,
     source: url,
@@ -835,11 +877,13 @@ function pinClipboardText(value) {
     createdAt: now,
     updatedAt: now
   }));
+  thread.activity.unshift({ text: `Created Pin: ${name}`, at: now });
   saveState();
   renderPins();
   renderSummary();
   if (document.body.classList.contains("is-expanded")) toast(`Pinned to ${thread.title}`);
   window.bb.overlay.clipboardPinComplete(thread.title);
+  return true;
 }
 
 function setExpanded(expanded) {
@@ -994,11 +1038,7 @@ elements.linkForm.addEventListener("submit", event => {
 
 document.querySelectorAll(".view-tab").forEach(button => {
   button.addEventListener("click", () => {
-    document.querySelectorAll(".view-tab").forEach(tab => tab.classList.toggle("active", tab === button));
-    document.querySelectorAll("[data-view-panel]").forEach(panel => {
-      panel.classList.toggle("active", panel.dataset.viewPanel === button.dataset.view);
-    });
-    if (button.dataset.view === "files") renderFiles();
+    activateView(button.dataset.view);
   });
 });
 
@@ -1046,4 +1086,5 @@ window.addEventListener("storage", event => {
 });
 
 window.bb.overlay.getState().then(payload => setExpanded(Boolean(payload.expanded)));
+initThreadBee();
 render();
