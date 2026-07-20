@@ -48,6 +48,7 @@ const elements = {
   pinCount: document.querySelector("#pinCount"),
   pinClipboard: document.querySelector("#pinClipboard"),
   newPin: document.querySelector("#newPin"),
+  reviewPins: document.querySelector("#reviewPins"),
   pinForm: document.querySelector("#pinForm"),
   pinName: document.querySelector("#pinName"),
   pinType: document.querySelector("#pinType"),
@@ -79,6 +80,7 @@ let state = loadState();
 let toastTimer = null;
 let saveTimer = null;
 let editingPinId = null;
+let pinReview = null;
 let fileRenderVersion = 0;
 const expandedPinIds = new Set();
 
@@ -126,7 +128,9 @@ function normalizeThread(id, thread = {}) {
 function normalizeNextUpItems(...collections) {
   return collections.flatMap(items => Array.isArray(items) ? items : []).map(item => {
     if (typeof item === "string") return { text: item, done: false };
-    return { text: String(item?.text || ""), done: Boolean(item?.done) };
+    const normalized = { text: String(item?.text || ""), done: Boolean(item?.done) };
+    if (item?.addedAt) normalized.addedAt = String(item.addedAt);
+    return normalized;
   }).filter(item => item.text && !LEGACY_DEMO_NEXT_STEPS.has(item.text));
 }
 
@@ -228,25 +232,63 @@ function renderNextUp() {
     const text = document.createElement("strong");
     text.textContent = item.text;
     main.append(text);
-    const done = document.createElement("button");
-    done.className = "row-action";
-    done.type = "button";
-    done.textContent = "Done";
-    done.addEventListener("click", () => {
+
+    const age = formatAge(item.addedAt);
+    if (age) {
+      const chip = document.createElement("span");
+      chip.className = "age-chip";
+      chip.textContent = age;
+      chip.title = `Added ${new Date(item.addedAt).toLocaleString()}`;
+      main.append(chip);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "row-actions";
+    if (index > 0) {
+      actions.append(rowButton("Do first", () => {
+        const queueIndex = thread.queue.indexOf(item);
+        if (queueIndex === -1) return;
+        thread.queue.splice(queueIndex, 1);
+        thread.queue.unshift(item);
+        saveState();
+        renderNextUp();
+        renderSummary();
+      }));
+    }
+    actions.append(rowButton("Done", () => {
       item.done = true;
       saveState();
       renderNextUp();
       renderSummary();
-    });
-    row.append(main, done);
+      toast("Marked done", {
+        label: "Undo",
+        action: () => {
+          const queueIndex = thread.queue.indexOf(item);
+          if (queueIndex !== -1) thread.queue.splice(queueIndex, 1);
+          item.done = false;
+          thread.queue.unshift(item);
+          saveState();
+          renderNextUp();
+          renderSummary();
+        }
+      }, 5000);
+    }));
+    row.append(main, actions);
     elements.nextUpList.append(row);
   });
 }
 
 function renderPins() {
-  const pins = currentThread().pins;
+  const thread = currentThread();
+  const pins = thread.pins;
+  const reviewCount = pins.filter(pin => pin.status === "review").length;
+  if (pinReview && pinReview.threadId !== thread.id) pinReview = null;
   elements.pinList.replaceChildren();
   elements.pinCount.textContent = `${pins.length} pin${pins.length === 1 ? "" : "s"}`;
+  elements.reviewPins.textContent = `Review ${reviewCount}`;
+  elements.reviewPins.hidden = reviewCount === 0;
+  elements.reviewPins.disabled = Boolean(pinReview);
+  if (pinReview) return renderPinReview();
   if (!pins.length) {
     return renderEmpty(elements.pinList, "Pin a term, definition, question, or quote while you work.");
   }
@@ -314,6 +356,90 @@ function renderPins() {
     item.append(details);
     elements.pinList.append(item);
   });
+}
+
+function startPinReview() {
+  const thread = currentThread();
+  const ids = thread.pins.filter(pin => pin.status === "review").map(pin => pin.id);
+  if (!ids.length) return;
+  closePinForm();
+  pinReview = { threadId: thread.id, ids, index: 0, understood: 0, revealed: false };
+  renderPins();
+}
+
+function renderPinReview() {
+  const pin = currentThread().pins.find(item => item.id === pinReview.ids[pinReview.index]);
+  if (!pin) return advancePinReview();
+
+  const item = document.createElement("li");
+  item.className = "pin-item needs-review";
+  const review = document.createElement("div");
+  review.className = "pin-review";
+  const header = document.createElement("div");
+  header.className = "pin-review-header";
+  const progress = document.createElement("span");
+  progress.className = "pin-type";
+  progress.textContent = `${pinReview.index + 1} of ${pinReview.ids.length}`;
+  header.append(progress, rowButton("Exit review", exitPinReview));
+
+  const identity = document.createElement("div");
+  identity.className = "pin-identity";
+  const name = document.createElement("strong");
+  name.textContent = pin.name;
+  const type = document.createElement("span");
+  type.className = "pin-type";
+  type.textContent = pin.type;
+  identity.append(name, type);
+  review.append(header, identity);
+
+  if (!pinReview.revealed) {
+    review.append(rowButton("Show", () => {
+      pinReview.revealed = true;
+      renderPins();
+    }));
+  } else {
+    const content = document.createElement("p");
+    content.className = "pin-review-content";
+    content.textContent = pin.content || "No explanation yet.";
+    const actions = document.createElement("div");
+    actions.className = "pin-actions";
+    actions.append(
+      rowButton("Got it", () => understandReviewedPin(pin)),
+      rowButton("Keep reviewing", advancePinReview)
+    );
+    review.append(content, actions);
+  }
+
+  item.append(review);
+  elements.pinList.append(item);
+}
+
+function understandReviewedPin(pin) {
+  pin.status = "understood";
+  pin.updatedAt = new Date().toISOString();
+  pinReview.understood += 1;
+  saveState();
+  renderSummary();
+  advancePinReview();
+}
+
+function advancePinReview() {
+  pinReview.index += 1;
+  pinReview.revealed = false;
+  if (pinReview.index >= pinReview.ids.length) return finishPinReview();
+  renderPins();
+}
+
+function finishPinReview() {
+  const understood = pinReview.understood;
+  pinReview = null;
+  renderPins();
+  toast(`${understood} understood`);
+}
+
+function exitPinReview() {
+  pinReview = null;
+  renderPins();
 }
 
 function openPinForm(pin = null, capturedText = "") {
@@ -630,6 +756,17 @@ function prettyUrl(value) {
   }
 }
 
+function formatAge(value) {
+  if (!value) return "";
+  const addedAt = new Date(value).getTime();
+  if (!Number.isFinite(addedAt)) return "";
+  const minutes = Math.max(0, Math.floor((Date.now() - addedAt) / 60000));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
@@ -637,11 +774,72 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 ** index)).toFixed(index ? 1 : 0)} ${units[index]}`;
 }
 
-function toast(message) {
-  elements.toast.textContent = message;
+function toast(message, action = null, duration = 1800) {
+  const text = document.createElement("span");
+  text.textContent = message;
+  elements.toast.replaceChildren(text);
+  elements.toast.classList.toggle("has-action", Boolean(action));
+  if (action) {
+    const button = document.createElement("button");
+    button.className = "toast-action";
+    button.type = "button";
+    button.textContent = action.label;
+    button.addEventListener("click", () => {
+      clearTimeout(toastTimer);
+      elements.toast.classList.remove("visible", "has-action");
+      action.action();
+    });
+    elements.toast.append(button);
+  }
   elements.toast.classList.add("visible");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => elements.toast.classList.remove("visible"), 1800);
+  toastTimer = setTimeout(() => {
+    elements.toast.classList.remove("visible", "has-action");
+  }, duration);
+}
+
+function singleClipboardUrl(text) {
+  if (!text || /\s/.test(text)) return "";
+  const normalized = normalizeUrl(text);
+  if (!normalized) return "";
+  try {
+    const url = new URL(normalized);
+    if (!url.hostname.includes(".") && url.hostname !== "localhost") return "";
+    return /^https?:\/\//i.test(text) ? text : normalized;
+  } catch {
+    return "";
+  }
+}
+
+function clipboardPinName(text) {
+  const words = text.replace(/\s+/g, " ").trim().split(" ");
+  let name = words.slice(0, 6).join(" ");
+  const truncated = words.length > 6 || name.length > 60;
+  if (truncated) name = `${name.slice(0, 59).trimEnd()}…`;
+  return name;
+}
+
+function pinClipboardText(value) {
+  const text = String(value || "").trim();
+  if (!text) return;
+  state = loadState();
+  const thread = currentThread();
+  const url = singleClipboardUrl(text);
+  const now = new Date().toISOString();
+  thread.pins.unshift(normalizePin({
+    name: url ? prettyUrl(new URL(url).origin) : clipboardPinName(text),
+    type: "general",
+    content: url || text,
+    source: url,
+    status: "review",
+    createdAt: now,
+    updatedAt: now
+  }));
+  saveState();
+  renderPins();
+  renderSummary();
+  if (document.body.classList.contains("is-expanded")) toast(`Pinned to ${thread.title}`);
+  window.bb.overlay.clipboardPinComplete(thread.title);
 }
 
 function setExpanded(expanded) {
@@ -698,7 +896,7 @@ elements.quickNote.addEventListener("input", () => {
 function addNextUp() {
   const text = elements.nextUpInput.value.trim();
   if (!text) return;
-  currentThread().queue.unshift({ text, done: false });
+  currentThread().queue.unshift({ text, done: false, addedAt: new Date().toISOString() });
   elements.nextUpInput.value = "";
   saveState();
   renderNextUp();
@@ -711,6 +909,7 @@ elements.nextUpInput.addEventListener("keydown", event => {
 });
 
 elements.newPin.addEventListener("click", () => openPinForm());
+elements.reviewPins.addEventListener("click", startPinReview);
 elements.cancelPin.addEventListener("click", closePinForm);
 elements.definePin.addEventListener("click", defineCurrentPin);
 elements.googlePin.addEventListener("click", () => {
@@ -839,6 +1038,7 @@ document.addEventListener("drop", event => event.preventDefault());
 window.bb.data.onDroppedFiles(filePaths => addDroppedFilePaths(filePaths));
 
 window.bb.overlay.onState(payload => setExpanded(Boolean(payload.expanded)));
+window.bb.overlay.onClipboardPin(payload => pinClipboardText(payload.text));
 window.addEventListener("storage", event => {
   if (event.key !== STORAGE_KEY) return;
   state = loadState();

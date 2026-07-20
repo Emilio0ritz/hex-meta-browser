@@ -44,7 +44,8 @@ The preview server only serves the static files. Thread file features are not av
 - Keeps per-thread concept pins with definitions, types, sources, and review state.
 - Shows the same Pins in the floating overlay and expanded workbench, with live synchronization between them.
 - Looks up a concise sourced definition from the pin form and offers a Google verification search.
-- Captures copied text from any Windows application into a new pin.
+- Captures clipboard text with Ctrl+Shift+H from any application.
+- Reviews new pins one at a time in the overlay.
 - Saves and reopens links attached to each thread.
 - Creates local thread folders and accepts file picker or drag-and-drop additions.
 - Automatically uses `Documents/HEX` by default and shows files as a visible two-column shelf with image previews.

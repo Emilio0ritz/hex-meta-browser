@@ -89,6 +89,14 @@ contextBridge.exposeInMainWorld("bb", {
       const listener = (_e, payload) => handler(payload);
       ipcRenderer.on("overlay:state", listener);
       return () => ipcRenderer.removeListener("overlay:state", listener);
+    },
+    onClipboardPin: handler => {
+      const listener = (_e, payload) => handler(payload);
+      ipcRenderer.on("overlay:clipboard-pin", listener);
+      return () => ipcRenderer.removeListener("overlay:clipboard-pin", listener);
+    },
+    clipboardPinComplete: threadTitle => {
+      ipcRenderer.send("overlay:clipboard-pin-complete", { threadTitle });
     }
   },
   clipboard: {

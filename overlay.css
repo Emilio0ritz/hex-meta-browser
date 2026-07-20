@@ -278,6 +278,13 @@ textarea { min-height: 160px; resize: vertical; line-height: 1.45; }
 .list-row-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-row-main strong { font-size: 0.8rem; }
 .list-row-main span { color: var(--muted); font-size: 0.68rem; }
+.list-row-main .age-chip {
+  width: max-content;
+  padding: 2px 5px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 0.62rem;
+}
 .row-actions { display: flex; gap: 4px; }
 .row-action { min-height: 28px; padding: 0 7px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: 0.7rem; }
 .row-action:hover { background: var(--surface-2); color: var(--ink); }
@@ -289,10 +296,11 @@ textarea { min-height: 160px; resize: vertical; line-height: 1.45; }
 .pin-heading { margin-bottom: 12px; }
 
 .pin-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  display: flex;
   gap: 8px;
 }
+
+.pin-toolbar > button { flex: 1; padding-inline: 8px; }
 
 .pin-form {
   display: grid;
@@ -445,6 +453,16 @@ textarea { min-height: 160px; resize: vertical; line-height: 1.45; }
   align-items: center;
   flex-wrap: wrap;
   gap: 3px;
+}
+
+.pin-review { display: grid; gap: 12px; padding: 12px; }
+.pin-review-header { display: flex; align-items: center; justify-content: space-between; }
+.pin-review-content {
+  margin: 0;
+  color: #d9dee3;
+  font-size: 0.8rem;
+  line-height: 1.48;
+  white-space: pre-wrap;
 }
 
 .file-heading { margin-bottom: 10px; }
@@ -607,6 +625,8 @@ textarea { min-height: 160px; resize: vertical; line-height: 1.45; }
 }
 
 .toast.visible { opacity: 1; transform: translateY(0); }
+.toast.has-action { display: flex; align-items: center; gap: 12px; pointer-events: auto; }
+.toast-action { padding: 0; border: 0; background: transparent; color: var(--honey); font-weight: 800; }
 
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-thumb { border: 2px solid var(--bg); border-radius: 8px; background: #3a424d; }

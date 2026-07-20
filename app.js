@@ -1419,7 +1419,8 @@ elements.extractActions.addEventListener("click", () => {
     toast("No action lines found in notes");
     return;
   }
-  actions.forEach(text => thread.queue.unshift({ text, done: false }));
+  const addedAt = new Date().toISOString();
+  actions.forEach(text => thread.queue.unshift({ text, done: false, addedAt }));
   addActivity(`Extracted ${actions.length} action${actions.length === 1 ? "" : "s"} from notes`);
   toast(`Added ${actions.length} action${actions.length === 1 ? "" : "s"} to Next Up`);
   touchThread(thread);
@@ -1727,7 +1728,7 @@ function addNextUpItem(input) {
   const text = input.value.trim();
   if (!text) return;
   const thread = currentThread();
-  thread.queue.unshift({ text, done: false });
+  thread.queue.unshift({ text, done: false, addedAt: new Date().toISOString() });
   input.value = "";
   addActivity(`Added to Next Up: ${text}`);
   touchThread(thread);
@@ -2683,7 +2684,9 @@ function normalizeItems(items, fallback) {
   if (!Array.isArray(items)) return structuredClone(fallback);
   return items.map(item => {
     if (typeof item === "string") return { text: item, done: false };
-    return { text: item.text || "", done: Boolean(item.done) };
+    const normalized = { text: item.text || "", done: Boolean(item.done) };
+    if (item.addedAt) normalized.addedAt = String(item.addedAt);
+    return normalized;
   }).filter(item => item.text);
 }
 

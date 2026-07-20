@@ -1,4 +1,4 @@
-const { app, BaseWindow, BrowserWindow, WebContentsView, ipcMain, shell, Menu, dialog, session, screen, clipboard, net } = require("electron");
+const { app, BaseWindow, BrowserWindow, WebContentsView, ipcMain, shell, Menu, dialog, session, screen, clipboard, globalShortcut, Notification, net } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
@@ -79,6 +79,7 @@ let overlayExpanded = false;
 let view = null;
 let viewVisible = false;
 let lastBounds = { x: 0, y: 0, width: 0, height: 0 };
+const CLIPBOARD_PIN_SHORTCUT = "CommandOrControl+Shift+H";
 
 function mainChromeContents() {
   if (!mainWindow || !mainWindow.contentView) return null;
@@ -190,6 +191,34 @@ function setOverlayExpanded(expanded) {
   overlayWindow.show();
   overlayWindow.moveTop();
   if (overlayExpanded) overlayWindow.focus();
+}
+
+function showHexNotification(message) {
+  if (!Notification.isSupported()) return;
+  new Notification({ title: "HEX", body: message }).show();
+}
+
+function sendClipboardPin(text) {
+  if (!overlayWindow || overlayWindow.isDestroyed()) return;
+  const contents = overlayWindow.webContents;
+  if (contents.isLoading()) {
+    contents.once("did-finish-load", () => sendClipboardPin(text));
+    return;
+  }
+  contents.send("overlay:clipboard-pin", { text });
+}
+
+function captureClipboardPin() {
+  const text = clipboard.readText().trim();
+  if (!text) {
+    showHexNotification("Clipboard is empty");
+    return;
+  }
+  sendClipboardPin(text);
+}
+
+function registerGlobalShortcuts() {
+  globalShortcut.register(CLIPBOARD_PIN_SHORTCUT, captureClipboardPin);
 }
 
 function createOverlayWindow() {
@@ -688,6 +717,14 @@ ipcMain.handle("overlay:open-manager", () => {
 
 ipcMain.handle("overlay:quit", () => app.quit());
 
+ipcMain.on("overlay:clipboard-pin-complete", (event, payload = {}) => {
+  if (!overlayWindow || overlayWindow.isDestroyed() || event.sender !== overlayWindow.webContents) return;
+  if (!overlayExpanded) {
+    const threadTitle = String(payload.threadTitle || "active thread");
+    showHexNotification(`Pinned to ${threadTitle}`);
+  }
+});
+
 ipcMain.handle("clipboard:read-text", () => clipboard.readText());
 ipcMain.handle("clipboard:write-text", (_e, text) => {
   clipboard.writeText(String(text || ""));
@@ -927,6 +964,7 @@ if (hasSingleInstanceLock) {
   app.whenReady().then(() => {
     buildAppMenu();
     createOverlayWindow();
+    registerGlobalShortcuts();
   });
 }
 
@@ -935,6 +973,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => codexDock.shutdown());
+
+app.on("will-quit", () => globalShortcut.unregister(CLIPBOARD_PIN_SHORTCUT));
 
 app.on("activate", () => {
   if (!overlayWindow) createOverlayWindow();
