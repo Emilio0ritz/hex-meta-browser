@@ -209,21 +209,25 @@ function initThreadBee() {
     host: elements.threadBee,
     surface: "overlay",
     getThreadTitle: () => currentThread().title,
-    onPinClipboard: async () => {
-      const text = (await window.bb.clipboard.readText()).trim();
-      if (!text) {
-        toast("Clipboard is empty");
-        return false;
+    onCollect: payload => {
+      if (payload.kind === "url") {
+        const url = normalizeUrl(payload.url);
+        if (!url) return false;
+        state = loadState();
+        const thread = currentThread();
+        thread.links.unshift({ name: prettyUrl(url), url, addedAt: new Date().toISOString() });
+        saveState();
+        renderLinks();
+        activateView("links");
+        toast(`Saved to ${thread.title}`);
+        return true;
       }
-      const pinned = pinClipboardText(text);
-      if (pinned) activateView("pins");
-      return pinned;
-    },
-    onAddNextStep: () => {
-      activateView("thread");
-      elements.nextUpInput.scrollIntoView({ behavior: "smooth", block: "center" });
-      elements.nextUpInput.focus({ preventScroll: true });
-      return true;
+      if (payload.kind === "text") {
+        const pinned = pinClipboardText(payload.text);
+        if (pinned) activateView("pins");
+        return pinned;
+      }
+      return false;
     },
     onResumeThread: () => window.bb.overlay.openManager(),
     onReset: () => toast("Bee returned home"),
@@ -882,6 +886,7 @@ function pinClipboardText(value) {
   renderPins();
   renderSummary();
   if (document.body.classList.contains("is-expanded")) toast(`Pinned to ${thread.title}`);
+  threadBeeController?.celebrate();
   window.bb.overlay.clipboardPinComplete(thread.title);
   return true;
 }
@@ -1075,7 +1080,10 @@ elements.openFolder.addEventListener("click", async () => {
 document.addEventListener("dragover", event => event.preventDefault());
 document.addEventListener("drop", event => event.preventDefault());
 
-window.bb.data.onDroppedFiles(filePaths => addDroppedFilePaths(filePaths));
+window.bb.data.onDroppedFiles(filePaths => {
+  if (threadBeeController?.isDropHover()) activateView("files");
+  addDroppedFilePaths(filePaths);
+});
 
 window.bb.overlay.onState(payload => setExpanded(Boolean(payload.expanded)));
 window.bb.overlay.onClipboardPin(payload => pinClipboardText(payload.text));

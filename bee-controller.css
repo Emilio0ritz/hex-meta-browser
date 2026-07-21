@@ -3,7 +3,6 @@
   width: 104px;
   height: 62px;
   flex: 0 0 104px;
-  isolation: isolate;
   -webkit-app-region: no-drag;
 }
 
@@ -81,169 +80,104 @@
   filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.24));
 }
 
-.thread-bee-shell.is-dragging .hex-bee-mark {
-  transform: scale(1.04);
-}
-
-.hex-bee-cell {
-  fill: none;
-  stroke: var(--accent, var(--honey, #f2c14e));
-  stroke-width: 2;
-  opacity: 0.25;
-}
-
-.hex-bee-loop {
-  fill: none;
-  stroke: var(--accent, var(--honey, #f2c14e));
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-dasharray: 1 6;
-  opacity: 0.68;
-}
-
-.hex-bee-loop-origin {
-  fill: var(--accent, var(--honey, #f2c14e));
-  opacity: 0.82;
-}
-
 .hex-bee-flight {
   transform-box: view-box;
-  transform-origin: 72px 52px;
-  animation: hex-bee-flight 4.8s cubic-bezier(0.45, 0, 0.35, 1) infinite;
+  transform-origin: 60px 44px;
+  animation: hex-bee-flight 5.4s cubic-bezier(0.45, 0, 0.35, 1) infinite;
 }
 
 .hex-bee-wing {
-  fill: rgba(238, 247, 245, 0.84);
-  stroke: rgba(70, 120, 125, 0.7);
-  stroke-width: 1.5;
+  stroke: rgba(120, 140, 150, 0.55);
+  stroke-width: 1;
+  opacity: 0.9;
   transform-box: fill-box;
   will-change: transform;
 }
 
-.hex-bee-wing-left {
-  transform-origin: 72% 92%;
-  animation: hex-bee-wing-left 2.8s ease-in-out infinite;
+.hex-bee-wing-back {
+  transform-origin: 92% 90%;
+  animation: hex-bee-wing-left 3.2s ease-in-out infinite;
 }
 
-.hex-bee-wing-right {
-  transform-origin: 28% 92%;
-  animation: hex-bee-wing-right 2.8s ease-in-out infinite;
+.hex-bee-wing-front {
+  transform-origin: 20% 92%;
+  animation: hex-bee-wing-right 3.2s ease-in-out infinite;
 }
 
-.hex-bee-body-fill { fill: #f4c84d; }
+.hex-bee-body {
+  stroke: rgba(120, 84, 24, 0.75);
+  stroke-width: 1;
+}
 
-.hex-bee-body-outline,
-.hex-bee-stinger {
+.hex-bee-body-edge {
   fill: none;
-  stroke: #5d461e;
-  stroke-width: 2.5;
+  stroke: rgba(255, 248, 228, 0.28);
+  stroke-width: 1;
 }
 
-.hex-bee-stinger {
-  fill: #0c0f0e;
-  stroke: #0c0f0e;
-  stroke-linejoin: round;
+.hex-bee-head {
+  stroke: rgba(120, 84, 24, 0.75);
+  stroke-width: 1;
 }
 
 .hex-bee-stripes path {
   fill: none;
-  stroke: #473616;
-  stroke-width: 12;
-  transform: rotate(4deg);
-  transform-origin: center;
-}
-
-.hex-bee-body-shine {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.52);
-  stroke-width: 3;
+  stroke-width: 4.4;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.hex-bee-face {
-  transform-box: view-box;
-  transform-origin: 49px 59px;
-  transition: transform 260ms ease;
-}
-
-.hex-bee-shades rect {
-  fill: #111615;
-  stroke: rgba(255, 255, 255, 0.2);
-  stroke-width: 1;
-  transform-box: fill-box;
-  transition: transform 260ms ease;
-}
-
-.hex-bee-shade-left {
-  transform: rotate(3deg);
-  transform-origin: center;
-}
-
-.hex-bee-shade-right {
-  transform: rotate(-3deg);
-  transform-origin: center;
-}
-
-.hex-bee-shades path {
+.hex-bee-shine {
   fill: none;
-  stroke: #1d2526;
-  stroke-width: 2.5;
-  stroke-linecap: round;
-}
-
-.hex-bee-mouth {
-  fill: none;
-  stroke: #5d461e;
+  stroke: rgba(255, 255, 255, 0.5);
   stroke-width: 2;
   stroke-linecap: round;
-  transition: opacity 180ms ease, transform 260ms ease;
 }
 
-.hex-bee-wry-mouth,
-.hex-bee-cheek {
-  opacity: 0;
+.hex-bee-antennae path {
+  fill: none;
+  stroke: rgba(150, 168, 178, 0.85);
+  stroke-width: 1.6;
+  stroke-linecap: round;
 }
 
-.hex-bee-cheek {
-  fill: #b87538;
-  transition: opacity 180ms ease;
+.hex-bee-antennae circle {
+  fill: #d7dee3;
 }
 
-.thread-bee-shell[data-expression="look-left"] .hex-bee-face {
-  transform: translateX(-2.2px) rotate(-1deg);
+/* Expression cues stay subtle: no cartoon face, just a premium micro-response. */
+.hex-bee-mark {
+  transition: transform 200ms ease, filter 160ms ease;
 }
 
-.thread-bee-shell[data-expression="look-right"] .hex-bee-face {
-  transform: translateX(2.4px) rotate(1deg);
+.thread-bee-shell[data-expression="look-left"] .hex-bee-mark {
+  transform: translateX(-1.5px) rotate(-1.5deg);
 }
 
-.thread-bee-shell[data-expression="curious"] .hex-bee-shade-left,
-.thread-bee-shell[data-expression="wry"] .hex-bee-shade-left {
-  transform: translateY(-1.5px) rotate(8deg);
+.thread-bee-shell[data-expression="look-right"] .hex-bee-mark {
+  transform: translateX(1.5px) rotate(1.5deg);
 }
 
-.thread-bee-shell[data-expression="curious"] .hex-bee-shade-right {
-  transform: translateY(1px) rotate(-5deg);
+.thread-bee-shell[data-expression="curious"] .hex-bee-mark {
+  transform: translateY(-1px) scale(1.03);
 }
 
-.thread-bee-shell[data-expression="wry"] .hex-bee-smile {
-  opacity: 0;
+.thread-bee-shell[data-expression="wry"] .hex-bee-mark {
+  transform: rotate(-3deg);
 }
 
-.thread-bee-shell[data-expression="wry"] .hex-bee-wry-mouth {
-  opacity: 1;
+.thread-bee-shell[data-expression="pleased"] .hex-bee-mark {
+  transform: translateY(-2px) scale(1.05);
 }
 
-.thread-bee-shell[data-expression="pleased"] .hex-bee-face {
-  transform: translateY(-1px) rotate(-1deg);
+/* Drag and catch feedback take priority over idle expression cues. */
+.thread-bee-shell.is-dragging .hex-bee-mark {
+  transform: scale(1.04);
 }
 
-.thread-bee-shell[data-expression="pleased"] .hex-bee-smile {
-  transform: scaleX(1.12);
-}
-
-.thread-bee-shell[data-expression="pleased"] .hex-bee-cheek {
-  opacity: 0.72;
+.thread-bee-shell.is-catching .hex-bee-mark {
+  transform: scale(1.12);
+  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.3));
 }
 
 .thread-bee-menu {
@@ -312,6 +246,12 @@
   background: var(--accent, var(--honey, #f2c14e));
 }
 
+.thread-bee-menu-hint {
+  color: var(--muted, #68736d);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
 .thread-bee-home {
   min-height: 26px;
   padding: 3px 0 0;
@@ -357,15 +297,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hex-bee-flight,
-  .hex-bee-loop,
   .hex-bee-wing {
     animation: none;
   }
 
-  .hex-bee-mark,
-  .hex-bee-face,
-  .hex-bee-mouth,
-  .hex-bee-shades rect {
+  .hex-bee-mark {
     transition: none;
   }
 }

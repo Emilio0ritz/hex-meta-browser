@@ -21,7 +21,7 @@
   /* Text */
   --ink: #edf1eb;
   --muted: #a1aaa0;
-  --soft: #747d73;
+  --soft: #828c81;
 
   /* Honey-amber accent (primary) */
   --accent: #f4c84d;
@@ -73,18 +73,18 @@
   /* Text — warm ink */
   --ink: #252925;
   --muted: #677066;
-  --soft: #90998f;
+  --soft: #6b746a;
 
   /* Honey accent, deeper for contrast on light */
   --accent: #c98a2b;
-  --accent-dark: #ad7320;
+  --accent-dark: #96621b;
   --accent-soft: rgba(201, 138, 43, 0.14);
   --accent-ink: #7a5314;
   --accent-glow: rgba(201, 138, 43, 0.22);
-  --on-accent: #ffffff;
+  --on-accent: #241a06;
 
   --teal: #2e6f79;
-  --green: #4f7d57;
+  --green: #47724f;
   --warm: #a65c3a;
 
   --danger: #b8402c;
@@ -97,6 +97,16 @@
   --toast-ink: #f7f3ea;
 
   --hex-line: rgba(166, 120, 40, 0.05);
+}
+
+/* Small honey-tinted text needs the deeper accent ink on light surfaces. */
+:root[data-theme="light"] #themeToggle .tb-icon {
+  color: var(--accent-ink);
+}
+
+/* Light theme's --warm is dark enough to need light badge text. */
+:root[data-theme="light"] .badge {
+  color: #fdf4ec;
 }
 
 * {

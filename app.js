@@ -370,7 +370,7 @@ function initThreadFileDrop() {
     setTimeout(() => { dropIsOverFiles = false; }, 0);
   });
   window.bb.data.onDroppedFiles(filePaths => {
-    if (dropIsOverFiles) addFilesToCurrentThread(filePaths);
+    if (dropIsOverFiles || threadBeeController?.isDropHover()) addFilesToCurrentThread(filePaths);
   });
 }
 
@@ -1612,6 +1612,7 @@ function applyCodexUpdate(payload) {
   const thread = state.threads[payload?.hexThreadId];
   if (!thread) return;
   const codex = ensureCodexState(thread);
+  const previousStatus = codex.status;
   const fields = ["threadId", "workspacePath", "permissionMode", "status", "lastRunAt", "lastResponsePreview"];
   fields.forEach(field => {
     if (typeof payload[field] === "string") codex[field] = payload[field];
@@ -1619,7 +1620,12 @@ function applyCodexUpdate(payload) {
   if (typeof payload.message === "string") codex.statusMessage = payload.message;
   touchThread(thread);
   saveState();
-  if (thread.id === state.activeThreadId) renderCodexDock();
+  if (thread.id === state.activeThreadId) {
+    renderCodexDock();
+    if (previousStatus === "working" && codex.status !== "working" && codex.status !== "failed") {
+      threadBeeController?.celebrate();
+    }
+  }
 }
 
 function setCodexPermission(permissionMode) {
@@ -1774,17 +1780,28 @@ function initThreadBee() {
     host: elements.threadBee,
     surface: "main",
     getThreadTitle: () => currentThread().title,
-    onPinClipboard: quickPinCurrentClipboard,
-    onAddNextStep: focusNextUpFromBee,
+    onCollect: payload => {
+      if (payload.kind === "url") return saveLinkToThread(payload.url);
+      if (payload.kind === "text") return pinTextToThread(payload.text);
+      return false;
+    },
     onResumeThread: resumeThreadFromBee,
     onReset: () => toast("Bee returned home"),
     onError: () => toast("That bee action did not finish")
   });
 }
 
-function focusNextUpFromBee() {
-  elements.queueForm.closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  elements.queueInput.focus({ preventScroll: true });
+function saveLinkToThread(rawUrl) {
+  const url = normalizeUrl(String(rawUrl || "").trim());
+  if (!url) return false;
+  const name = nameFromUrl(url);
+  const thread = currentThread();
+  thread.links.unshift({ name, url });
+  addActivity(`Saved link: ${name}`);
+  toast(`Saved "${name}"`);
+  touchThread(thread);
+  saveState();
+  render();
   return true;
 }
 
@@ -2212,6 +2229,39 @@ async function captureThreadPinClipboard() {
   }
 }
 
+function pinTextToThread(rawText) {
+  const content = String(rawText || "").trim();
+  if (!content) return false;
+
+  let source = "";
+  if (!/\s/.test(content)) {
+    try {
+      const candidate = new URL(normalizeUrl(content));
+      if (["http:", "https:"].includes(candidate.protocol)) source = candidate.href;
+    } catch {}
+  }
+  const words = content.replace(/\s+/g, " ").split(" ");
+  const shortName = words.slice(0, 6).join(" ").slice(0, 60).trim();
+  const name = source ? prettyUrl(source) : `${shortName}${words.length > 6 ? "..." : ""}`;
+  const now = new Date().toISOString();
+  const thread = currentThread();
+  thread.pins.unshift(normalizePin({
+    name: name || "Clipboard Pin",
+    type: "general",
+    content,
+    source,
+    status: "review",
+    createdAt: now,
+    updatedAt: now
+  }));
+  addActivity(`Created Pin: ${name || "Clipboard Pin"}`);
+  touchThread(thread);
+  saveState();
+  render();
+  toast(`Pinned to ${thread.title}`);
+  return true;
+}
+
 async function quickPinCurrentClipboard() {
   try {
     const text = IS_ELECTRON && window.bb.clipboard
@@ -2222,34 +2272,7 @@ async function quickPinCurrentClipboard() {
       toast("Clipboard is empty");
       return false;
     }
-
-    let source = "";
-    if (!/\s/.test(content)) {
-      try {
-        const candidate = new URL(normalizeUrl(content));
-        if (["http:", "https:"].includes(candidate.protocol)) source = candidate.href;
-      } catch {}
-    }
-    const words = content.replace(/\s+/g, " ").split(" ");
-    const shortName = words.slice(0, 6).join(" ").slice(0, 60).trim();
-    const name = source ? prettyUrl(source) : `${shortName}${words.length > 6 ? "..." : ""}`;
-    const now = new Date().toISOString();
-    const thread = currentThread();
-    thread.pins.unshift(normalizePin({
-      name: name || "Clipboard Pin",
-      type: "general",
-      content,
-      source,
-      status: "review",
-      createdAt: now,
-      updatedAt: now
-    }));
-    addActivity(`Created Pin: ${name || "Clipboard Pin"}`);
-    touchThread(thread);
-    saveState();
-    render();
-    toast(`Pinned to ${thread.title}`);
-    return true;
+    return pinTextToThread(content);
   } catch {
     toast("HEX could not read the clipboard");
     return false;

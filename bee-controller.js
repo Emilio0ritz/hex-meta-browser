@@ -24,39 +24,49 @@
   }
 
   function beeSvg(surface) {
+    const goldId = `hexBeeGold-${surface}`;
+    const headId = `hexBeeHead-${surface}`;
+    const chromeId = `hexBeeChrome-${surface}`;
     const clipId = `hexBeeBodyClip-${surface}`;
     return `
-      <svg class="hex-bee-mark" viewBox="0 0 170 96" focusable="false" aria-hidden="true">
+      <svg class="hex-bee-mark" viewBox="0 0 120 72" focusable="false" aria-hidden="true">
         <defs>
+          <linearGradient id="${goldId}" x1="0.15" y1="0" x2="0.4" y2="1">
+            <stop offset="0" stop-color="#fbe6a0"></stop>
+            <stop offset="0.5" stop-color="#e2b04d"></stop>
+            <stop offset="1" stop-color="#a97a27"></stop>
+          </linearGradient>
+          <linearGradient id="${headId}" x1="0.1" y1="0" x2="0.4" y2="1">
+            <stop offset="0" stop-color="#eecb74"></stop>
+            <stop offset="1" stop-color="#976a1d"></stop>
+          </linearGradient>
+          <linearGradient id="${chromeId}" x1="0.1" y1="0" x2="0.25" y2="1">
+            <stop offset="0" stop-color="#ffffff"></stop>
+            <stop offset="0.5" stop-color="#c2cad1"></stop>
+            <stop offset="1" stop-color="#f2f5f7"></stop>
+          </linearGradient>
           <clipPath id="${clipId}">
-            <ellipse cx="70" cy="58" rx="38" ry="23"></ellipse>
+            <ellipse cx="52" cy="44" rx="27" ry="15"></ellipse>
           </clipPath>
         </defs>
-        <polygon class="hex-bee-cell" points="69,4 108,26 108,70 69,92 30,70 30,26"></polygon>
-        <path class="hex-bee-loop" d="M116 59 C137 68 160 61 161 43 C162 27 146 19 132 23 C118 27 116 39 124 46 C133 53 147 49 152 40 C155 34 151 29 145 30 C140 31 138 35 140 39"></path>
-        <circle class="hex-bee-loop-origin" cx="116" cy="59" r="2.2"></circle>
         <g class="hex-bee-flight">
-          <path class="hex-bee-wing hex-bee-wing-left" d="M62 39 C47 30 44 11 57 8 C71 5 78 24 74 39 Z"></path>
-          <path class="hex-bee-wing hex-bee-wing-right" d="M75 39 C75 18 87 5 99 12 C111 19 101 38 86 43 Z"></path>
-          <path class="hex-bee-stinger" d="M106 52 L120 58 L107 66 Z"></path>
-          <ellipse class="hex-bee-body-fill" cx="70" cy="58" rx="38" ry="23"></ellipse>
+          <g class="hex-bee-antennae">
+            <path d="M79 35 C83 24 87 18 90 13"></path>
+            <circle cx="90" cy="13" r="2.3"></circle>
+            <path d="M75 34 C77 24 79 17 80 12"></path>
+            <circle cx="80" cy="12" r="2.1"></circle>
+          </g>
+          <path class="hex-bee-wing hex-bee-wing-back" d="M53 33 C34 29 20 11 29 8 C40 4 52 22 53 33 Z" fill="url(#${chromeId})"></path>
+          <path class="hex-bee-wing hex-bee-wing-front" d="M59 32 C53 24 49 5 61 8 C72 11 69 27 59 33 Z" fill="url(#${chromeId})"></path>
+          <ellipse class="hex-bee-body" cx="52" cy="44" rx="27" ry="15" fill="url(#${goldId})"></ellipse>
           <g class="hex-bee-stripes" clip-path="url(#${clipId})">
-            <path d="M66 30 L63 87"></path>
-            <path d="M87 31 L84 86"></path>
+            <path d="M39 30 L47 44 L39 58" stroke="url(#${chromeId})"></path>
+            <path d="M29 31 L36 44 L29 57" stroke="url(#${chromeId})"></path>
+            <path d="M49 31 L57 44 L49 57" stroke="url(#${chromeId})"></path>
           </g>
-          <ellipse class="hex-bee-body-outline" cx="70" cy="58" rx="38" ry="23"></ellipse>
-          <path class="hex-bee-body-shine" d="M43 45 C51 38 60 36 68 37"></path>
-          <g class="hex-bee-face">
-            <g class="hex-bee-shades">
-              <rect class="hex-bee-shade-left" x="36" y="48" width="14" height="10" rx="4"></rect>
-              <rect class="hex-bee-shade-right" x="52" y="48" width="14" height="10" rx="4"></rect>
-              <path d="M49 52 C51 51 52 51 54 52"></path>
-              <path d="M36 51 L32 49"></path>
-            </g>
-            <path class="hex-bee-mouth hex-bee-smile" d="M41 64 C46 69 53 69 58 64"></path>
-            <path class="hex-bee-mouth hex-bee-wry-mouth" d="M41 66 C46 63 52 68 58 64"></path>
-            <circle class="hex-bee-cheek" cx="61" cy="65" r="1.6"></circle>
-          </g>
+          <ellipse class="hex-bee-body-edge" cx="52" cy="44" rx="27" ry="15"></ellipse>
+          <path class="hex-bee-shine" d="M31 37 C39 32 46 32 52 34"></path>
+          <circle class="hex-bee-head" cx="77" cy="42" r="9" fill="url(#${headId})"></circle>
         </g>
       </svg>`;
   }
@@ -72,14 +82,13 @@
         <button class="thread-bee-button" type="button" aria-label="Open HEX capture actions" aria-expanded="false">
           ${beeSvg(surface)}
         </button>
-        <section class="thread-bee-menu" aria-label="HEX capture actions" hidden>
+        <section class="thread-bee-menu" aria-label="HEX bee actions" hidden>
           <span class="thread-bee-menu-label">Active Thread</span>
           <strong class="thread-bee-thread-name"></strong>
           <div class="thread-bee-actions">
-            <button type="button" data-bee-action="pin">Pin clipboard</button>
-            <button type="button" data-bee-action="next">Add next step</button>
             <button class="thread-bee-primary" type="button" data-bee-action="resume">Resume Thread</button>
           </div>
+          <span class="thread-bee-menu-hint">Drop files, links, or text on the bee to collect them into this thread.</span>
           <button class="thread-bee-home" type="button" data-bee-action="home">Return bee home</button>
         </section>
       </div>`;
@@ -223,8 +232,6 @@
     async function runAction(name, actionButton) {
       if (name === "home") return resetPosition();
       const handlers = {
-        pin: options.onPinClipboard,
-        next: options.onAddNextStep,
         resume: options.onResumeThread
       };
       const handler = handlers[name];
@@ -288,6 +295,71 @@
     window.addEventListener("pointermove", moveDrag);
     window.addEventListener("pointerup", finishDrag);
     window.addEventListener("pointercancel", finishDrag);
+
+    let dropHover = false;
+
+    function dropTypesAccepted(dataTransfer) {
+      const types = Array.from(dataTransfer?.types || []);
+      return types.includes("Files") || types.includes("text/uri-list") || types.includes("text/plain");
+    }
+
+    function parseDropPayload(dataTransfer) {
+      if (dataTransfer.files?.length) return { kind: "files" };
+      const uriList = dataTransfer.getData("text/uri-list");
+      const rawText = dataTransfer.getData("text/plain").trim();
+      const uriCandidate = (uriList.split(/\r?\n/).find(line => line && !line.startsWith("#")) || "").trim();
+      const single = uriCandidate || (!/\s/.test(rawText) ? rawText : "");
+      if (single) {
+        try {
+          const url = new URL(single);
+          if (["http:", "https:"].includes(url.protocol)) return { kind: "url", url: url.href };
+        } catch {}
+      }
+      if (rawText) return { kind: "text", text: rawText };
+      return null;
+    }
+
+    shell.addEventListener("dragenter", event => {
+      if (!dropTypesAccepted(event.dataTransfer)) return;
+      event.preventDefault();
+      dropHover = true;
+      closeMenu();
+      shell.classList.add("is-catching");
+      setExpression("curious", 0);
+    });
+
+    shell.addEventListener("dragover", event => {
+      if (!dropTypesAccepted(event.dataTransfer)) return;
+      event.preventDefault();
+      dropHover = true;
+    });
+
+    shell.addEventListener("dragleave", event => {
+      if (shell.contains(event.relatedTarget)) return;
+      dropHover = false;
+      shell.classList.remove("is-catching");
+      setExpression("calm", 0);
+    });
+
+    shell.addEventListener("drop", async event => {
+      if (!dropTypesAccepted(event.dataTransfer)) return;
+      event.preventDefault();
+      const payload = parseDropPayload(event.dataTransfer);
+      shell.classList.remove("is-catching");
+      setTimeout(() => { dropHover = false; }, 0);
+      if (!payload) return setExpression("wry", 1300);
+      // File drops are delivered with real paths by the surface's existing
+      // dropped-file mechanism; the surface checks isDropHover() for routing.
+      if (payload.kind === "files") return setExpression("pleased", 1500);
+      if (typeof options.onCollect !== "function") return setExpression("wry", 1300);
+      try {
+        const result = await options.onCollect(payload);
+        setExpression(result === false ? "wry" : "pleased", 1500);
+      } catch (error) {
+        setExpression("wry", 1700);
+        options.onError?.(error);
+      }
+    });
     trigger.addEventListener("click", event => {
       if (Date.now() < suppressClickUntil) {
         event.preventDefault();
@@ -323,7 +395,8 @@
     return {
       refresh,
       reset: resetPosition,
-      celebrate: () => setExpression("pleased", 1500)
+      celebrate: () => setExpression("pleased", 1500),
+      isDropHover: () => dropHover
     };
   }
 

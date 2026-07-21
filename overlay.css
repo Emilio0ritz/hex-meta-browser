@@ -43,42 +43,27 @@ button { cursor: pointer; }
   top: 0;
   left: 0;
   display: grid;
-  grid-template-rows: 34px 1fr 24px;
+  grid-template-rows: auto 24px;
+  gap: 7px;
   place-items: center;
   width: 58px;
-  height: 132px;
-  padding: 8px 5px;
+  height: 92px;
+  padding: 10px 5px 8px;
   border: 1px solid #3a414b;
   border-right: 0;
   border-radius: 10px 0 0 10px;
   color: var(--ink);
   background: #171b21;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
+  transition: background 0.15s, transform 0.15s;
 }
 
-.edge-tab:hover { background: #20252d; }
+.edge-tab:hover { background: #20252d; transform: translateX(-3px); }
 
-.edge-mark,
-.brand-mark {
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(242, 193, 78, 0.62);
-  background: var(--honey);
-  color: var(--honey-dark);
-  font-weight: 900;
-}
-
-.edge-mark {
-  width: 30px;
-  height: 30px;
-  clip-path: polygon(25% 7%, 75% 7%, 100% 50%, 75% 93%, 25% 93%, 0 50%);
-}
-
-.edge-label {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  font-size: 0.7rem;
-  font-weight: 800;
+.edge-logo {
+  width: 46px;
+  height: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .edge-count {
@@ -129,17 +114,14 @@ button { cursor: pointer; }
   align-items: center;
 }
 
-.brand-block { gap: 10px; }
+.brand-block { gap: 9px; min-width: 0; }
 
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  clip-path: polygon(25% 7%, 75% 7%, 100% 50%, 75% 93%, 25% 93%, 0 50%);
+.brand-logo {
+  width: 62px;
+  height: auto;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
-
-.brand-block div { display: grid; gap: 1px; }
-.brand-block strong { font-size: 0.92rem; }
-.brand-block span { color: var(--muted); font-size: 0.72rem; }
 
 .window-actions { gap: 6px; -webkit-app-region: no-drag; }
 
