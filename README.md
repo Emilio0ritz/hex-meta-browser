@@ -4,20 +4,35 @@ HEX is a calm local-first Windows desktop companion for keeping threads, links, 
 
 Former project name: Browser Base.
 
-## Launch
+## Getting started
 
-For normal use, double-click the **HEX** desktop shortcut or `Launch HEX.cmd` in this folder.
-
-For development, install dependencies once and launch from a terminal:
+Requirements: Windows 10/11 and [Node.js](https://nodejs.org) 20+ (includes npm).
 
 ```powershell
+git clone https://github.com/Emilio0ritz/hex-meta-browser.git
+cd hex-meta-browser
 npm install
 npm start
 ```
 
 HEX starts as a small tab on the right edge of the Windows desktop. Click it to open the compact overlay. The full workspace is available from the button in the overlay header.
 
-See `LAUNCHING_HEX.md` for simple launch and troubleshooting instructions.
+Try it in 60 seconds:
+
+1. Copy any text in any application and press **Ctrl+Shift+H** — it becomes a pin on the active thread.
+2. Open the **Pins** tab in the overlay and press **Review N** for a quick recall pass.
+3. Drop a file, link, or selected text onto the **bee** — it lands in the active thread.
+
+No sample data is needed — HEX starts with an empty Home thread and stores everything locally (localStorage plus `Documents/HEX` for thread files). Codex Dock is optional and reuses the Codex sign-in already on your machine; without one, the Dock shows "Sign-in required" and everything else works normally.
+
+Tests and syntax checks:
+
+```powershell
+npm test
+npm run check
+```
+
+If you already use HEX daily, the desktop shortcut or `Launch HEX.cmd` still works; see `LAUNCHING_HEX.md` for troubleshooting.
 
 ## Expanded-window annotation preview
 
@@ -38,7 +53,7 @@ The preview uses the same `index.html`, `style.css`, and `app.js` as the package
 ## What It Does
 
 - Floats above the Windows desktop as a compact, always-available edge tab.
-- Uses the bee as a movable Thread handle in both windows: click for capture actions, drag to place it, or return it home.
+- Uses the bee as a movable Thread handle in both windows: drop files, links, or text on it to collect them into the active Thread; drag to place it anywhere.
 - Expands into Thread, Links, and Files views.
 - Preserves the active thread and quick note using local storage.
 - Keeps one clear Next Up list for the active Thread.
@@ -73,9 +88,9 @@ HEX data is stored in local storage. Codex Dock also uses the local Codex sessio
 
 ## Bee Thread Handle
 
-The bee is a compact entry point into the active Thread, not a chatbot. Click it to pin the current clipboard, move focus to a new Next Up item, or resume the Thread in the expanded workspace. Dragging the bee snaps it safely inside the current window and saves a separate position for the main workspace and floating overlay. **Return bee home** clears only that saved position.
+The bee is a compact entry point into the active Thread, not a chatbot. Drop files, links, or selected text onto it and they are collected into the active Thread (files to the Thread folder, links to Links, text to a review pin). Click it to resume the Thread in the expanded workspace. Dragging the bee snaps it safely inside the current window and saves a separate position for the main workspace and floating overlay. **Return bee home** clears only that saved position.
 
-Its occasional glance and facial change are quiet idle states. They do not display messages, interrupt work, or trigger actions, and motion is disabled when the system requests reduced motion.
+Its occasional glance and tilt are quiet idle states in the same metallic style as the HEX mark. They do not display messages, interrupt work, or trigger actions, and motion is disabled when the system requests reduced motion.
 
 ## Thread Workspace
 

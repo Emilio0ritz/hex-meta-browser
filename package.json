@@ -4,7 +4,7 @@
   "description": "HEX - a calm meta browser for threads, modes, local files, and intentional internet work.",
   "main": "main.js",
   "author": "Emilio Ortiz",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "start": "electron .",
