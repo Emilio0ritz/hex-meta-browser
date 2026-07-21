@@ -2,3 +2,4 @@ node_modules/
 Holding_Tray/
 *.log
 .DS_Store
+output/
