@@ -20,7 +20,7 @@ All acceptance criteria passed on the first run: `npm run check`, the full test 
 
 Built in an interactive Codex app session (gpt-5.6-sol): the draggable bee Thread handle with snap positioning and idle expressions, the full light-mode theme for the workspace, the official logo integration, and a browser-based annotation preview system (`npm run preview`) that loads the production renderer with safe representative data for design review.
 
-<!-- TODO(Emilio): add your /feedback Codex session ID here — the session where the majority of core functionality was built. -->
+**Primary build session:** `/feedback 019e0eef-1b4d-74d2-93fc-9903a4fde8be` — the persistent interactive Codex session (started May 9, 2026) where the majority of HEX's core functionality was built.
 
 ## 2. Codex inside the product: Codex Dock
 
