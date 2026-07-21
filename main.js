@@ -164,7 +164,7 @@ function createWindow() {
   });
 }
 
-const OVERLAY_COLLAPSED = { width: 58, height: 132 };
+const OVERLAY_COLLAPSED = { width: 58, height: 92 };
 const OVERLAY_EXPANDED = { width: 372, height: 680 };
 
 function overlayBounds(expanded) {
