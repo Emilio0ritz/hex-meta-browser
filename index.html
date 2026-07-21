@@ -89,20 +89,23 @@
         </header>
 
         <section class="focus-panel" aria-labelledby="thread-title">
-          <form id="searchForm" class="search-form" aria-label="Search or open URL">
-            <input id="searchInput" type="search" placeholder="Search, ask, or paste a URL" autocomplete="off" autofocus>
-            <button type="submit">Open</button>
-          </form>
-          <div class="engine-row" role="group" aria-label="Search engine">
-            <button type="button" class="engine active" data-engine="google">Google</button>
-            <button type="button" class="engine" data-engine="perplexity">Perplexity</button>
-            <button type="button" class="engine" data-engine="youtube">YouTube</button>
-            <button type="button" class="engine" data-engine="reddit">Reddit</button>
+          <div class="search-cluster">
+            <form id="searchForm" class="search-form" aria-label="Search or open URL">
+              <input id="searchInput" type="search" placeholder="Search, ask, or paste a URL" autocomplete="off" autofocus>
+              <button type="submit">Open</button>
+            </form>
+            <div class="engine-row" role="radiogroup" aria-label="Search engine">
+              <span class="engine-lead">Search with</span>
+              <button type="button" class="engine active" data-engine="google">Google</button>
+              <button type="button" class="engine" data-engine="perplexity">Perplexity</button>
+              <button type="button" class="engine" data-engine="youtube">YouTube</button>
+              <button type="button" class="engine" data-engine="reddit">Reddit</button>
+            </div>
           </div>
-          <div class="contextual-row" aria-label="Contextual shortcuts">
+          <div class="contextual-row" aria-label="Quick sites for this thread">
             <div>
-              <p class="label">Mode Shortcuts</p>
-              <p class="dock-note">Websites orbit the active thread.</p>
+              <p class="label">Quick sites</p>
+              <p class="dock-note">One tap to open in this thread</p>
             </div>
             <div id="modeShortcuts" class="shortcut-actions"></div>
           </div>
@@ -114,8 +117,8 @@
                 <button id="viewReload" class="nav-btn" type="button" title="Reload">↻</button>
               </div>
               <div class="workspace-title-wrap">
-                <p class="label">Embedded</p>
-                <h2 id="workspaceTitle">Nothing loaded yet</h2>
+                <p class="label">In-thread browser</p>
+                <h2 id="workspaceTitle">Nothing open yet</h2>
                 <p id="workspaceUrl" class="workspace-url"></p>
               </div>
               <div class="workspace-actions">
